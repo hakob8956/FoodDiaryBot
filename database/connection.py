@@ -13,7 +13,7 @@ logger = logging.getLogger(__name__)
 class Database:
     """
     Async database connection manager with dual support for:
-    - Turso (cloud SQLite via libsql)
+    - Turso (cloud SQLite via libsql-client HTTP API)
     - Local SQLite (via aiosqlite)
 
     Toggle with USE_TURSO environment variable.
@@ -21,6 +21,7 @@ class Database:
 
     def __init__(self):
         self.use_turso = settings.use_turso and bool(settings.turso_db_url)
+        self._turso_client = None
 
         if self.use_turso:
             logger.info(f"Using Turso database: {settings.turso_db_url}")
@@ -29,19 +30,24 @@ class Database:
             logger.info(f"Using local SQLite database: {settings.database_path}")
             self.db_path = settings.database_path
             self._ensure_directory()
-            self._turso_conn = None
 
     def _init_turso(self):
-        """Initialize Turso connection."""
+        """Initialize Turso connection using libsql-client (HTTP)."""
         try:
-            import libsql_experimental as libsql
-            self._turso_conn = libsql.connect(
-                settings.turso_db_url,
+            import libsql_client
+
+            # Convert libsql:// URL to https:// for HTTP client
+            turso_url = settings.turso_db_url
+            if turso_url.startswith("libsql://"):
+                turso_url = turso_url.replace("libsql://", "https://")
+
+            self._turso_client = libsql_client.create_client_sync(
+                url=turso_url,
                 auth_token=settings.turso_auth_token
             )
-            logger.info("Turso connection established")
+            logger.info(f"Turso connection established (HTTP client): {turso_url}")
         except ImportError:
-            logger.error("libsql_experimental not installed. Install with: pip install libsql-experimental")
+            logger.error("libsql-client not installed. Install with: pip install libsql-client")
             raise
         except Exception as e:
             logger.error(f"Failed to connect to Turso: {e}")
@@ -57,8 +63,8 @@ class Database:
     async def get_connection(self):
         """Get an async database connection (SQLite only, for migrations)."""
         if self.use_turso:
-            # For Turso, yield the sync connection (used carefully)
-            yield self._turso_conn
+            # For Turso, yield None - use the client methods directly
+            yield None
         else:
             conn = await aiosqlite.connect(self.db_path)
             conn.row_factory = aiosqlite.Row
@@ -75,11 +81,12 @@ class Database:
             return await self._execute_sqlite(query, params)
 
     def _execute_turso(self, query: str, params: tuple = None) -> Any:
-        """Execute query on Turso (sync)."""
+        """Execute query on Turso (sync HTTP client)."""
         try:
-            cursor = self._turso_conn.execute(query, params or ())
-            self._turso_conn.commit()
-            return cursor
+            # libsql-client uses positional args
+            args = list(params) if params else []
+            result = self._turso_client.execute(query, args)
+            return TursoCursor(result)
         except Exception as e:
             logger.error(f"Turso execute error: {e}")
             raise
@@ -101,13 +108,13 @@ class Database:
     def _fetch_one_turso(self, query: str, params: tuple = None) -> Optional[dict]:
         """Fetch one row from Turso."""
         try:
-            cursor = self._turso_conn.execute(query, params or ())
-            row = cursor.fetchone()
-            if row is None:
+            args = list(params) if params else []
+            result = self._turso_client.execute(query, args)
+            if not result.rows:
                 return None
-            # Convert to dict using column names
-            columns = [desc[0] for desc in cursor.description]
-            return dict(zip(columns, row))
+            # Convert to dict using column names (columns are strings in libsql-client)
+            columns = result.columns
+            return dict(zip(columns, result.rows[0]))
         except Exception as e:
             logger.error(f"Turso fetch_one error: {e}")
             raise
@@ -129,12 +136,13 @@ class Database:
     def _fetch_all_turso(self, query: str, params: tuple = None) -> list[dict]:
         """Fetch all rows from Turso."""
         try:
-            cursor = self._turso_conn.execute(query, params or ())
-            rows = cursor.fetchall()
-            if not rows:
+            args = list(params) if params else []
+            result = self._turso_client.execute(query, args)
+            if not result.rows:
                 return []
-            columns = [desc[0] for desc in cursor.description]
-            return [dict(zip(columns, row)) for row in rows]
+            # columns are strings in libsql-client
+            columns = result.columns
+            return [dict(zip(columns, row)) for row in result.rows]
         except Exception as e:
             logger.error(f"Turso fetch_all error: {e}")
             raise
@@ -151,8 +159,7 @@ class Database:
         if self.use_turso:
             for stmt in statements:
                 if stmt.strip():
-                    self._turso_conn.execute(stmt)
-            self._turso_conn.commit()
+                    self._turso_client.execute(stmt)
         else:
             async with self.get_connection() as conn:
                 for stmt in statements:
@@ -163,9 +170,19 @@ class Database:
     def get_lastrowid(self, cursor) -> Optional[int]:
         """Get the last inserted row ID from a cursor."""
         if self.use_turso:
-            return cursor.lastrowid
+            # TursoCursor wraps the result
+            return cursor.lastrowid if cursor else None
         else:
             return cursor.lastrowid
+
+
+class TursoCursor:
+    """Wrapper to provide cursor-like interface for Turso results."""
+
+    def __init__(self, result):
+        self.result = result
+        self.lastrowid = result.last_insert_rowid if result else None
+        self.rowcount = result.rows_affected if result else 0
 
 
 # Singleton instance
