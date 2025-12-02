@@ -4,6 +4,7 @@ import Navigation from './components/Navigation'
 import Calendar from './components/Calendar'
 import Charts from './components/Charts'
 import DaySummary from './components/DaySummary'
+import Help from './components/Help'
 
 function App() {
   const [activeTab, setActiveTab] = useState('calendar')
@@ -128,6 +129,7 @@ function App() {
             </p>
           </div>
         )}
+        {activeTab === 'help' && <Help />}
       </main>
 
       {selectedDay && (

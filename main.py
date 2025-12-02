@@ -15,6 +15,7 @@ from bot.handlers.rawlog import get_rawlog_handler
 from bot.handlers.delete import get_delete_handler
 from bot.handlers.notifications import get_notifications_handler
 from bot.handlers.dashboard import get_dashboard_handler
+from bot.handlers.webapp import get_webapp_data_handler
 from bot.handlers.debug import get_debug_handlers
 from services.reminder_service import check_and_send_reminders
 
@@ -103,6 +104,7 @@ def main():
     application.add_handler(get_delete_handler())
     application.add_handler(get_notifications_handler())
     application.add_handler(get_dashboard_handler())
+    application.add_handler(get_webapp_data_handler())
 
     # Debug handlers (remove in production)
     for handler in get_debug_handlers():

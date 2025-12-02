@@ -633,3 +633,108 @@ body {
   border: 1px solid var(--bg-card) !important;
   border-radius: 8px !important;
 }
+
+/* Help Section */
+.help-view {
+  background: var(--bg-secondary);
+  border-radius: 12px;
+  padding: 16px;
+}
+
+.help-view h2 {
+  margin-bottom: 8px;
+}
+
+.help-intro {
+  color: var(--text-secondary);
+  font-size: 14px;
+  margin-bottom: 16px;
+}
+
+.command-list {
+  background: var(--bg-card);
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.command-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 12px 16px;
+  border-bottom: 1px solid var(--bg-secondary);
+}
+
+.command-item:last-child {
+  border-bottom: none;
+}
+
+.command-item.clickable {
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.command-item.clickable:hover {
+  background: var(--bg-secondary);
+}
+
+.command-item.clickable:active {
+  background: var(--bg-primary);
+}
+
+.command-item.copied {
+  background: rgba(78, 205, 196, 0.2);
+}
+
+.command-item.copied .command-desc {
+  color: var(--success);
+  font-weight: 600;
+}
+
+.command-name {
+  font-family: monospace;
+  color: var(--accent);
+  font-size: 14px;
+  background: var(--bg-secondary);
+  padding: 4px 8px;
+  border-radius: 4px;
+}
+
+.command-desc {
+  color: var(--text-secondary);
+  font-size: 13px;
+  text-align: right;
+  flex: 1;
+  margin-left: 12px;
+}
+
+.help-tips {
+  margin-top: 20px;
+}
+
+.help-tips h3 {
+  font-size: 16px;
+  margin-bottom: 12px;
+}
+
+.help-tips ul {
+  list-style: none;
+  background: var(--bg-card);
+  border-radius: 8px;
+  padding: 12px 16px;
+}
+
+.help-tips li {
+  padding: 8px 0;
+  color: var(--text-secondary);
+  font-size: 14px;
+  border-bottom: 1px solid var(--bg-secondary);
+}
+
+.help-tips li:last-child {
+  border-bottom: none;
+}
+
+.help-tips li::before {
+  content: "💡 ";
+}
