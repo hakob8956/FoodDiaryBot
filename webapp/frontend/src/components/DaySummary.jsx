@@ -1,10 +1,11 @@
 import React, { useState, useEffect } from 'react'
 import api from '../api/client'
 
-function DaySummary({ date, onClose }) {
+function DaySummary({ date, onClose, onDataChanged }) {
   const [data, setData] = useState(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
+  const [deletingId, setDeletingId] = useState(null)
 
   useEffect(() => {
     loadDayData()
@@ -20,6 +21,31 @@ function DaySummary({ date, onClose }) {
       setError(err.message)
     } finally {
       setLoading(false)
+    }
+  }
+
+  async function handleDelete(mealId) {
+    if (!window.confirm('Delete this meal entry?')) {
+      return
+    }
+
+    try {
+      setDeletingId(mealId)
+      await api.deleteEntry(mealId)
+      // Refresh the day data
+      await loadDayData()
+      // Notify parent to refresh calendar
+      if (onDataChanged) {
+        onDataChanged()
+      }
+      // Close modal if no meals left
+      if (data && data.meals.length <= 1) {
+        onClose()
+      }
+    } catch (err) {
+      alert('Failed to delete: ' + err.message)
+    } finally {
+      setDeletingId(null)
     }
   }
 
@@ -107,7 +133,17 @@ function DaySummary({ date, onClose }) {
                   <div key={meal.id} className="meal-card">
                     <div className="meal-header">
                       <span className="meal-time">{formatTime(meal.logged_at)}</span>
-                      <span className="meal-calories">{meal.total_calories} kcal</span>
+                      <div className="meal-header-right">
+                        <span className="meal-calories">{meal.total_calories} kcal</span>
+                        <button
+                          className="delete-btn"
+                          onClick={() => handleDelete(meal.id)}
+                          disabled={deletingId === meal.id}
+                          title="Delete this entry"
+                        >
+                          {deletingId === meal.id ? '...' : '🗑️'}
+                        </button>
+                      </div>
                     </div>
                     <div className="meal-items">
                       {meal.items.map((item, idx) => (

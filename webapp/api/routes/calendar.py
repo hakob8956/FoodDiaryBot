@@ -4,7 +4,7 @@ import logging
 from datetime import date, datetime, timedelta
 from typing import Optional
 
-from fastapi import APIRouter, Depends, Query
+from fastapi import APIRouter, Depends, Query, HTTPException
 from pydantic import BaseModel
 
 from database.repositories.food_log_repo import food_log_repo
@@ -230,3 +230,20 @@ async def get_day_detail(
         total_fat=total_fat,
         meals=meals
     )
+
+
+@router.delete("/calendar/entry/{entry_id}")
+async def delete_entry(
+    entry_id: int,
+    user: TelegramUser = Depends(get_current_user)
+):
+    """
+    Delete a food log entry.
+
+    Args:
+        entry_id: The ID of the food log entry to delete
+    """
+    deleted = await food_log_repo.delete_log(user.id, entry_id)
+    if not deleted:
+        raise HTTPException(status_code=404, detail="Entry not found")
+    return {"success": True}

@@ -55,6 +55,7 @@ export const api = {
   },
 
   getDayDetail: (date) => apiRequest(`/calendar/${date}`),
+  deleteEntry: (id) => apiRequest(`/calendar/entry/${id}`, { method: 'DELETE' }),
 
   // Charts
   getCaloriesChart: (days = 7) => apiRequest(`/charts/calories?days=${days}`),

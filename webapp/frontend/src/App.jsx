@@ -11,6 +11,7 @@ function App() {
   const [selectedDay, setSelectedDay] = useState(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
+  const [calendarKey, setCalendarKey] = useState(0)
 
   useEffect(() => {
     loadProfile()
@@ -35,6 +36,11 @@ function App() {
 
   function closeDaySummary() {
     setSelectedDay(null)
+  }
+
+  function handleDataChanged() {
+    // Increment key to force Calendar to re-fetch data
+    setCalendarKey(k => k + 1)
   }
 
   if (loading) {
@@ -72,6 +78,7 @@ function App() {
       <main className="main">
         {activeTab === 'calendar' && (
           <Calendar
+            key={calendarKey}
             onDaySelect={handleDaySelect}
             dailyTarget={profile?.daily_calorie_target}
           />
@@ -127,6 +134,7 @@ function App() {
         <DaySummary
           date={selectedDay}
           onClose={closeDaySummary}
+          onDataChanged={handleDataChanged}
         />
       )}
 
