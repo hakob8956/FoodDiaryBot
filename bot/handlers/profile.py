@@ -1,9 +1,23 @@
-from telegram import Update
+from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup, WebAppInfo
 from telegram.ext import ContextTypes, CommandHandler
 
+from config import settings
 from database.repositories.user_repo import user_repo
 from services.calorie_calculator import calculate_daily_target, get_macro_targets
 from utils.validators import validate_calories, validate_weight
+
+
+def get_webapp_keyboard():
+    """Get keyboard with Mini App button if configured."""
+    if not settings.webapp_url:
+        return None
+
+    return InlineKeyboardMarkup([[
+        InlineKeyboardButton(
+            text="Open Dashboard",
+            web_app=WebAppInfo(url=settings.webapp_url)
+        )
+    ]])
 
 
 async def profile_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -56,7 +70,7 @@ async def profile_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
         "Use /setweight to update your weight"
     )
 
-    await update.message.reply_text(profile_text)
+    await update.message.reply_text(profile_text, reply_markup=get_webapp_keyboard())
 
 
 async def set_calories_command(update: Update, context: ContextTypes.DEFAULT_TYPE):

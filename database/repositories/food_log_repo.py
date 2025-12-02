@@ -37,7 +37,8 @@ class FoodLogRepository:
                 total_carbs, total_fat, confidence_score
             )
         )
-        return await self.get_log_by_id(cursor.lastrowid)
+        new_id = db.get_lastrowid(cursor)
+        return await self.get_log_by_id(new_id)
 
     async def get_log_by_id(self, log_id: int) -> Optional[FoodLog]:
         """Get a single food log by ID."""

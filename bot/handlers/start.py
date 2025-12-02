@@ -1,4 +1,4 @@
-from telegram import Update
+from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup, WebAppInfo
 from telegram.ext import (
     ContextTypes,
     CommandHandler,
@@ -8,6 +8,7 @@ from telegram.ext import (
     filters
 )
 
+from config import settings
 from database.repositories.user_repo import user_repo
 from database.models import OnboardingState
 from services.calorie_calculator import calculate_daily_target
@@ -22,6 +23,19 @@ from bot.keyboards.inline import (
 
 # Conversation states
 WEIGHT, HEIGHT, AGE, SEX, ACTIVITY, GOAL, CONFIRM = range(7)
+
+
+def get_webapp_keyboard():
+    """Get keyboard with Mini App button if configured."""
+    if not settings.webapp_url:
+        return None
+
+    return InlineKeyboardMarkup([[
+        InlineKeyboardButton(
+            text="Open Dashboard",
+            web_app=WebAppInfo(url=settings.webapp_url)
+        )
+    ]])
 
 
 async def start_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
@@ -44,7 +58,8 @@ async def start_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> i
             f"Your profile is already set up.\n"
             f"Daily target: {existing_user.daily_calorie_target} kcal\n\n"
             "Send a food photo or description to log a meal.\n"
-            "Use /profile to view your stats or /help for commands."
+            "Use /profile to view your stats or /help for commands.",
+            reply_markup=get_webapp_keyboard()
         )
         return ConversationHandler.END
 
@@ -283,6 +298,16 @@ async def confirm_profile(update: Update, context: ContextTypes.DEFAULT_TYPE) ->
         "- Use /profile to view your stats\n"
         "- Use /help for all commands"
     )
+
+    # Send webapp button in separate message (WebApp buttons need a new message)
+    webapp_keyboard = get_webapp_keyboard()
+    if webapp_keyboard:
+        await context.bot.send_message(
+            chat_id=telegram_id,
+            text="Open the dashboard to view your nutrition charts and calendar:",
+            reply_markup=webapp_keyboard
+        )
+
     return ConversationHandler.END
 
 

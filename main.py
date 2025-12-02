@@ -1,5 +1,6 @@
 import logging
 import asyncio
+import threading
 from telegram import Update
 from telegram.ext import Application, ContextTypes
 
@@ -56,9 +57,29 @@ async def post_init(application: Application):
         logger.info("Daily reminder job scheduled (hourly)")
 
 
+def run_api_server():
+    """Run the Mini App API server in a separate thread."""
+    import uvicorn
+    from webapp.api.server import app
+
+    uvicorn.run(
+        app,
+        host="0.0.0.0",
+        port=settings.webapp_port,
+        log_level="info"
+    )
+
+
 def main():
-    """Start the bot."""
+    """Start the bot and optionally the Mini App API server."""
     logger.info("Starting FoodGPT bot...")
+
+    # Start Mini App API server if enabled
+    if settings.webapp_enabled:
+        logger.info(f"Starting Mini App API server on port {settings.webapp_port}...")
+        api_thread = threading.Thread(target=run_api_server, daemon=True)
+        api_thread.start()
+        logger.info("Mini App API server started")
 
     # Create application
     application = (
