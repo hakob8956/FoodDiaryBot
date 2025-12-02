@@ -10,14 +10,24 @@ A Telegram bot that helps you track your nutrition effortlessly using AI-powered
 - **Nutrition Summaries** - Get detailed reports for any date or date range
 - **Smart Insights** - Personalized feedback on eating habits and suggestions for improvement
 - **Easy Management** - Delete entries, update weight, override calorie targets
+- **Mini App Dashboard** - Interactive calendar, charts, and detailed meal history via Telegram WebApp
+- **Daily Reminders** - Configurable notifications if you haven't logged food
+- **Cloud Database Support** - Optional Turso integration for cloud deployment
 
 ## Tech Stack
 
-- **Python 3.9+**
+**Backend:**
+- **Python 3.9+** with asyncio
 - **python-telegram-bot** - Telegram Bot API wrapper
 - **OpenAI GPT-4o** - Vision API for food image analysis
-- **SQLite** - Local database for user profiles and food logs
+- **FastAPI** - Mini App API server
+- **SQLite / Turso** - Local or cloud database
 - **Pydantic** - Data validation and settings management
+
+**Frontend (Mini App):**
+- **React 18** + **Vite**
+- **Recharts** - Charts and visualizations
+- **Telegram WebApp SDK** - Native Telegram integration
 
 ## Setup
 
@@ -74,6 +84,7 @@ python main.py
 | `/setweight <number>` | Update your weight in kg (e.g., `/setweight 75`) |
 | `/summarize [date]` | Get nutrition summary (today, yesterday, this week, or specific date) |
 | `/delete [id]` | Delete a food entry |
+| `/notifications` | Configure daily reminder settings |
 | `/rawlog` | Export all logs as JSON |
 | `/help` | Show all commands |
 
@@ -110,7 +121,7 @@ Today: 1,240/2,000 kcal (760 remaining)
 
 ```
 FoodDiaryTelegram/
-├── main.py                 # Application entry point
+├── main.py                 # Application entry point (bot + API server)
 ├── config.py               # Environment configuration
 ├── requirements.txt        # Python dependencies
 ├── bot/
@@ -120,10 +131,11 @@ FoodDiaryTelegram/
 │   │   ├── food_log.py     # Food logging
 │   │   ├── summary.py      # Nutrition summaries
 │   │   ├── delete.py       # Delete entries
+│   │   ├── notifications.py # Reminder settings
 │   │   └── help.py         # Help command
 │   └── keyboards/          # Inline keyboards
 ├── database/
-│   ├── connection.py       # SQLite connection
+│   ├── connection.py       # SQLite/Turso dual connection
 │   ├── models.py           # Pydantic models
 │   ├── migrations.py       # Schema setup
 │   └── repositories/       # Data access layer
@@ -131,7 +143,17 @@ FoodDiaryTelegram/
 │   ├── calorie_calculator.py   # BMR/TDEE calculations
 │   ├── openai_service.py       # GPT-4o integration
 │   ├── food_analyzer.py        # Food analysis
-│   └── summary_generator.py    # Report generation
+│   ├── summary_generator.py    # Report generation
+│   └── reminder_service.py     # Daily reminders
+├── webapp/
+│   ├── api/                # FastAPI backend
+│   │   ├── server.py       # API server setup
+│   │   └── routes/         # API endpoints
+│   └── frontend/           # React Mini App
+│       ├── src/
+│       │   ├── components/ # Calendar, Charts, DaySummary
+│       │   └── api/        # API client
+│       └── package.json
 ├── utils/                  # Utilities
 └── data/                   # SQLite database (created at runtime)
 ```
@@ -152,6 +174,62 @@ Goal adjustments:
 - Lose weight: -500 kcal
 - Maintain: 0
 - Gain weight: +300 kcal
+
+## Mini App Setup
+
+The Mini App provides a visual dashboard with calendar, charts, and meal history.
+
+### Development
+
+```bash
+cd webapp/frontend
+npm install
+npm run dev
+```
+
+### Production
+
+1. Build the frontend:
+   ```bash
+   cd webapp/frontend
+   npm run build
+   ```
+
+2. Set `WEBAPP_URL` in `.env` to your public HTTPS URL
+
+3. Configure in BotFather:
+   - `/mybots` → Select bot → Bot Settings → Menu Button
+   - Set URL to your `WEBAPP_URL`
+
+### Local Testing with ngrok
+
+```bash
+ngrok http 8080
+# Copy the HTTPS URL to WEBAPP_URL in .env
+```
+
+## Cloud Database (Turso)
+
+For deployment without local storage (e.g., Raspberry Pi):
+
+1. Install Turso CLI and create database:
+   ```bash
+   curl -sSfL https://get.tur.so/install.sh | bash
+   turso db create foodgpt
+   ```
+
+2. Get credentials:
+   ```bash
+   turso db show foodgpt --url
+   turso db tokens create foodgpt
+   ```
+
+3. Update `.env`:
+   ```
+   USE_TURSO=true
+   TURSO_DB_URL=libsql://your-db.turso.io
+   TURSO_AUTH_TOKEN=your-token
+   ```
 
 ## License
 

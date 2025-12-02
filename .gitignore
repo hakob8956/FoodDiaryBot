@@ -64,3 +64,6 @@ yarn-error.log*
 .cache/
 .temp/
 tmp/
+
+# AI/LLM Files
+claude.md
