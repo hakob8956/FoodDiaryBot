@@ -183,6 +183,18 @@ class FoodLogRepository:
         )
         return True
 
+    async def has_logged_today(self, telegram_id: int) -> bool:
+        """Check if user has logged any food today."""
+        row = await db.fetch_one(
+            """
+            SELECT COUNT(*) as count FROM food_logs
+            WHERE telegram_id = ?
+            AND date(logged_at) = date('now')
+            """,
+            (telegram_id,)
+        )
+        return (row["count"] > 0) if row else False
+
 
 # Singleton instance
 food_log_repo = FoodLogRepository()

@@ -34,6 +34,13 @@ COMMANDS:
     /delete - show recent entries to delete
     /delete 42 - delete entry #42
 
+/notifications - Manage daily reminders
+  Examples:
+    /notifications - view settings
+    /notifications on - enable reminders
+    /notifications off - disable reminders
+    /notifications time 20 - set reminder hour (0-23)
+
 /rawlog - Export all logs as raw JSON (for debugging)
 
 /help - Show this help message

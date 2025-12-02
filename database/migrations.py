@@ -18,6 +18,9 @@ CREATE TABLE IF NOT EXISTS users (
     daily_calorie_target INTEGER,
     calorie_override INTEGER DEFAULT 0,
     onboarding_complete INTEGER DEFAULT 0,
+    notifications_enabled INTEGER DEFAULT 1,
+    reminder_hour INTEGER DEFAULT 20,
+    last_reminder_sent TIMESTAMP,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
@@ -54,8 +57,32 @@ ON food_logs(telegram_id, logged_at);
 
 
 async def run_migrations():
-    """Create all database tables."""
+    """Create all database tables and run migrations."""
     async with db.get_connection() as conn:
+        # Create tables
         await conn.executescript(SCHEMA_SQL)
         await conn.commit()
+
+        # Run migrations for existing databases
+        await _migrate_add_notification_columns(conn)
+
     print("Database migrations completed successfully.")
+
+
+async def _migrate_add_notification_columns(conn):
+    """Add notification columns to existing users table if missing."""
+    # Check if columns exist
+    cursor = await conn.execute("PRAGMA table_info(users)")
+    columns = {row[1] for row in await cursor.fetchall()}
+
+    # Add missing columns
+    if "notifications_enabled" not in columns:
+        await conn.execute("ALTER TABLE users ADD COLUMN notifications_enabled INTEGER DEFAULT 1")
+
+    if "reminder_hour" not in columns:
+        await conn.execute("ALTER TABLE users ADD COLUMN reminder_hour INTEGER DEFAULT 20")
+
+    if "last_reminder_sent" not in columns:
+        await conn.execute("ALTER TABLE users ADD COLUMN last_reminder_sent TIMESTAMP")
+
+    await conn.commit()

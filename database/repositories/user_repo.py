@@ -101,6 +101,50 @@ class UserRepository:
             (telegram_id,)
         )
 
+    # Notification methods
+
+    async def get_users_for_reminder(self, current_hour: int) -> list[User]:
+        """
+        Get users eligible for reminder notification.
+
+        Returns users who:
+        - Have completed onboarding
+        - Have notifications enabled
+        - Have reminder_hour matching current hour
+        - Haven't been reminded today
+        """
+        rows = await db.fetch_all(
+            """
+            SELECT * FROM users
+            WHERE onboarding_complete = 1
+            AND notifications_enabled = 1
+            AND reminder_hour = ?
+            AND (
+                last_reminder_sent IS NULL
+                OR date(last_reminder_sent) < date('now')
+            )
+            """,
+            (current_hour,)
+        )
+        return [User(**row) for row in rows]
+
+    async def update_last_reminder(self, telegram_id: int):
+        """Update the last_reminder_sent timestamp."""
+        await db.execute(
+            "UPDATE users SET last_reminder_sent = CURRENT_TIMESTAMP WHERE telegram_id = ?",
+            (telegram_id,)
+        )
+
+    async def set_notifications_enabled(self, telegram_id: int, enabled: bool) -> Optional[User]:
+        """Enable or disable notifications for a user."""
+        return await self.update_user(telegram_id, notifications_enabled=1 if enabled else 0)
+
+    async def set_reminder_hour(self, telegram_id: int, hour: int) -> Optional[User]:
+        """Set the preferred reminder hour (0-23)."""
+        if not 0 <= hour <= 23:
+            raise ValueError("Hour must be between 0 and 23")
+        return await self.update_user(telegram_id, reminder_hour=hour)
+
 
 # Singleton instance
 user_repo = UserRepository()

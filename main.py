@@ -12,6 +12,9 @@ from bot.handlers.food_log import get_food_log_handler
 from bot.handlers.summary import get_summary_handler
 from bot.handlers.rawlog import get_rawlog_handler
 from bot.handlers.delete import get_delete_handler
+from bot.handlers.notifications import get_notifications_handler
+from bot.handlers.debug import get_debug_handlers
+from services.reminder_service import check_and_send_reminders
 
 
 # Configure logging
@@ -42,6 +45,16 @@ async def post_init(application: Application):
     await run_migrations()
     logger.info("Database ready.")
 
+    # Schedule reminder job (runs every hour)
+    if application.job_queue:
+        application.job_queue.run_repeating(
+            check_and_send_reminders,
+            interval=3600,  # Every hour
+            first=60,  # First run after 60 seconds
+            name="daily_reminder_check"
+        )
+        logger.info("Daily reminder job scheduled (hourly)")
+
 
 def main():
     """Start the bot."""
@@ -66,6 +79,11 @@ def main():
     application.add_handler(get_summary_handler())
     application.add_handler(get_rawlog_handler())
     application.add_handler(get_delete_handler())
+    application.add_handler(get_notifications_handler())
+
+    # Debug handlers (remove in production)
+    for handler in get_debug_handlers():
+        application.add_handler(handler)
 
     # Food logging handler (photos and text messages)
     # This should be last to not interfere with conversation handlers

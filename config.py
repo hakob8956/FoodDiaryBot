@@ -21,6 +21,10 @@ class Settings(BaseSettings):
     # Logging
     log_level: str = Field(default="INFO", validation_alias="LOG_LEVEL")
 
+    # GrowthBook Feature Flags
+    growthbook_client_key: str = Field(default="", validation_alias="GROWTHBOOK_CLIENT_KEY")
+    growthbook_api_host: str = Field(default="https://cdn.growthbook.io", validation_alias="GROWTHBOOK_API_HOST")
+
     class Config:
         env_file = ".env"
         env_file_encoding = "utf-8"

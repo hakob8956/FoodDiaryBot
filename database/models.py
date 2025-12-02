@@ -17,6 +17,9 @@ class User(BaseModel):
     daily_calorie_target: Optional[int] = None
     calorie_override: bool = False
     onboarding_complete: bool = False
+    notifications_enabled: bool = True
+    reminder_hour: int = 20
+    last_reminder_sent: Optional[datetime] = None
     created_at: Optional[datetime] = None
     updated_at: Optional[datetime] = None
 
