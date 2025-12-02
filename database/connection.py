@@ -110,8 +110,17 @@ class Database:
         try:
             args = list(params) if params else []
             result = self._turso_client.execute(query, args)
+            logger.debug(f"Turso result: rows={result.rows}, columns={result.columns}, last_insert_rowid={getattr(result, 'last_insert_rowid', None)}")
+
+            # For INSERT with RETURNING, if rows is empty but we have last_insert_rowid
             if not result.rows:
+                # Check if this is an INSERT RETURNING id query
+                if 'RETURNING' in query.upper() and 'id' in query.lower():
+                    last_id = getattr(result, 'last_insert_rowid', None)
+                    if last_id:
+                        return {"id": last_id}
                 return None
+
             # Convert to dict using column names (columns are strings in libsql-client)
             columns = result.columns
             return dict(zip(columns, result.rows[0]))
@@ -124,6 +133,9 @@ class Database:
         async with self.get_connection() as conn:
             cursor = await conn.execute(query, params or ())
             row = await cursor.fetchone()
+            # Commit for INSERT/UPDATE/DELETE with RETURNING
+            if query.strip().upper().startswith(('INSERT', 'UPDATE', 'DELETE')):
+                await conn.commit()
             return dict(row) if row else None
 
     async def fetch_all(self, query: str, params: tuple = None) -> list[dict]:

@@ -22,7 +22,8 @@ class FoodLogRepository:
         photo_file_id: str = None
     ) -> FoodLog:
         """Create a new food log entry."""
-        cursor = await db.execute(
+        # Use RETURNING id to get the new ID (works with both SQLite 3.35+ and Turso)
+        row = await db.fetch_one(
             """
             INSERT INTO food_logs (
                 telegram_id, input_type, raw_input, photo_file_id,
@@ -30,6 +31,7 @@ class FoodLogRepository:
                 total_carbs, total_fat, confidence_score
             )
             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            RETURNING id
             """,
             (
                 telegram_id, input_type, raw_input, photo_file_id,
@@ -37,7 +39,7 @@ class FoodLogRepository:
                 total_carbs, total_fat, confidence_score
             )
         )
-        new_id = db.get_lastrowid(cursor)
+        new_id = row["id"]
         return await self.get_log_by_id(new_id)
 
     async def get_log_by_id(self, log_id: int) -> Optional[FoodLog]:
