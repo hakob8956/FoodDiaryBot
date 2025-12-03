@@ -1,13 +1,27 @@
+"""
+OpenAI GPT-4o Vision service.
+
+Handles food analysis using GPT-4o vision capabilities.
+"""
+
 import base64
 import json
+from typing import Optional
+
 from openai import AsyncOpenAI
-from tenacity import retry, stop_after_attempt, wait_exponential, retry_if_exception_type
+from tenacity import (
+    retry,
+    stop_after_attempt,
+    wait_exponential,
+    retry_if_exception_type
+)
 import openai
 
 from config import settings
+from constants import CONFIDENCE_HIGH, CONFIDENCE_WARNING_THRESHOLD
 
 
-FOOD_ANALYSIS_SYSTEM_PROMPT = """You are FoodGPT, an expert nutritionist AI. Analyze food from photos and text descriptions to provide accurate nutritional estimates.
+FOOD_ANALYSIS_SYSTEM_PROMPT = f"""You are FoodGPT, an expert nutritionist AI. Analyze food from photos and text descriptions to provide accurate nutritional estimates.
 
 ## Your Task:
 1. Identify all food items visible in the photo or described in text
@@ -18,26 +32,26 @@ FOOD_ANALYSIS_SYSTEM_PROMPT = """You are FoodGPT, an expert nutritionist AI. Ana
 ## Output Format:
 Respond with ONLY valid JSON, no markdown or extra text:
 
-{
+{{
   "items": [
-    {
+    {{
       "name": "Food item name",
       "portion": "Estimated portion (e.g., '150g', '1 cup', '1 medium')",
       "calories": <integer>,
       "protein_g": <number with 1 decimal>,
       "carbs_g": <number with 1 decimal>,
       "fat_g": <number with 1 decimal>
-    }
+    }}
   ],
-  "totals": {
+  "totals": {{
     "calories": <integer>,
     "protein_g": <number>,
     "carbs_g": <number>,
     "fat_g": <number>
-  },
+  }},
   "overall_confidence": <0.0-1.0>,
   "notes": "Brief observation about the meal (optional)"
-}
+}}
 
 ## Guidelines:
 - Estimate portions from visual cues: plate size (~10 inch dinner plate), utensils, hand if visible
@@ -45,7 +59,7 @@ Respond with ONLY valid JSON, no markdown or extra text:
 - Fist ≈ 1 cup
 - Cupped hand ≈ 1/2 cup
 - Round calories to nearest 5, macros to 1 decimal
-- Confidence: 0.9+ clear, 0.7-0.9 moderate uncertainty, <0.7 significant uncertainty
+- Confidence: {CONFIDENCE_HIGH}+ clear, {CONFIDENCE_WARNING_THRESHOLD}-{CONFIDENCE_HIGH} moderate uncertainty, <{CONFIDENCE_WARNING_THRESHOLD} significant uncertainty
 - When uncertain, err toward slightly higher calorie estimates
 - Account for cooking methods: fried adds ~50-100 cal per serving
 - Consider visible sauces, oils, dressings"""
@@ -65,8 +79,8 @@ class OpenAIService:
     )
     async def analyze_food(
         self,
-        text_description: str = None,
-        image_base64: str = None
+        text_description: Optional[str] = None,
+        image_base64: Optional[str] = None
     ) -> dict:
         """
         Analyze food from image and/or text description.

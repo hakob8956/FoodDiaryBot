@@ -1,3 +1,9 @@
+"""
+Reminder notification service.
+
+Handles scheduled reminder notifications for users who haven't logged food.
+"""
+
 import logging
 from datetime import datetime
 from telegram.ext import ContextTypes
@@ -15,7 +21,7 @@ Send me a photo of your meal or a text description to track your nutrition!
 (Use /notifications off to disable these reminders)"""
 
 
-async def check_and_send_reminders(context: ContextTypes.DEFAULT_TYPE):
+async def check_and_send_reminders(context: ContextTypes.DEFAULT_TYPE) -> None:
     """
     Job that runs every hour to send reminder notifications.
 

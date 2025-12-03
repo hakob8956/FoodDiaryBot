@@ -1,3 +1,9 @@
+"""
+Start and onboarding handler.
+
+Handles /start command and multi-step onboarding conversation.
+"""
+
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup, WebAppInfo
 from telegram.ext import (
     ContextTypes,
@@ -9,6 +15,7 @@ from telegram.ext import (
 )
 
 from config import settings
+from constants import Sex, ActivityLevel, Goal
 from database.repositories.user_repo import user_repo
 from database.models import OnboardingState
 from services.calorie_calculator import calculate_daily_target
@@ -19,6 +26,8 @@ from bot.keyboards.inline import (
     get_goal_keyboard,
     get_confirmation_keyboard
 )
+from bot.messages import Messages
+from bot.labels import get_activity_label, get_goal_label, get_sex_label
 
 
 # Conversation states
@@ -32,7 +41,7 @@ def get_webapp_keyboard():
 
     return InlineKeyboardMarkup([[
         InlineKeyboardButton(
-            text="Open Dashboard",
+            text=Messages.WEBAPP_BUTTON_TEXT,
             web_app=WebAppInfo(url=settings.webapp_url)
         )
     ]])
@@ -54,11 +63,10 @@ async def start_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> i
     existing_user = await user_repo.get_user(telegram_id)
     if existing_user and existing_user.onboarding_complete:
         await update.message.reply_text(
-            f"Welcome back, {user.first_name}!\n\n"
-            f"Your profile is already set up.\n"
-            f"Daily target: {existing_user.daily_calorie_target} kcal\n\n"
-            "Send a food photo or description to log a meal.\n"
-            "Use /profile to view your stats or /help for commands.",
+            Messages.WELCOME_BACK.format(
+                first_name=user.first_name,
+                daily_target=existing_user.daily_calorie_target
+            ),
             reply_markup=get_webapp_keyboard()
         )
         return ConversationHandler.END
@@ -72,9 +80,7 @@ async def start_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> i
     await user_repo.save_onboarding_state(state)
 
     await update.message.reply_text(
-        f"Hi {user.first_name}! I'm FoodGPT, your nutrition tracking assistant.\n\n"
-        "Let's set up your profile to calculate your daily calorie needs.\n\n"
-        "What's your current weight in kg? (e.g., 75)"
+        Messages.ONBOARDING_START.format(first_name=user.first_name)
     )
     return WEIGHT
 
@@ -96,8 +102,7 @@ async def receive_weight(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
     await user_repo.save_onboarding_state(state)
 
     await update.message.reply_text(
-        f"Weight: {weight} kg\n\n"
-        "Now, what's your height in cm? (e.g., 175)"
+        Messages.ONBOARDING_WEIGHT_CONFIRM.format(weight=weight)
     )
     return HEIGHT
 
@@ -118,8 +123,7 @@ async def receive_height(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
     await user_repo.save_onboarding_state(state)
 
     await update.message.reply_text(
-        f"Height: {height} cm\n\n"
-        "How old are you? (e.g., 28)"
+        Messages.ONBOARDING_HEIGHT_CONFIRM.format(height=height)
     )
     return AGE
 
@@ -140,8 +144,7 @@ async def receive_age(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int
     await user_repo.save_onboarding_state(state)
 
     await update.message.reply_text(
-        f"Age: {age}\n\n"
-        "What's your biological sex? (This affects calorie calculations)",
+        Messages.ONBOARDING_AGE_CONFIRM.format(age=age),
         reply_markup=get_sex_keyboard()
     )
     return SEX
@@ -153,16 +156,16 @@ async def receive_sex(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int
     await query.answer()
 
     telegram_id = query.from_user.id
-    sex = query.data.split(":")[1]
+    sex_value = query.data.split(":")[1]
+    sex = Sex(sex_value)
 
     state = await user_repo.get_onboarding_state(telegram_id)
-    state.collected_data["sex"] = sex
+    state.collected_data["sex"] = sex_value
     state.current_step = "activity"
     await user_repo.save_onboarding_state(state)
 
     await query.edit_message_text(
-        f"Sex: {sex.capitalize()}\n\n"
-        "What's your typical activity level?",
+        Messages.ONBOARDING_SEX_CONFIRM.format(sex=get_sex_label(sex)),
         reply_markup=get_activity_keyboard()
     )
     return ACTIVITY
@@ -174,23 +177,18 @@ async def receive_activity(update: Update, context: ContextTypes.DEFAULT_TYPE) -
     await query.answer()
 
     telegram_id = query.from_user.id
-    activity = query.data.split(":")[1]
-
-    activity_labels = {
-        "sedentary": "Sedentary",
-        "lightly_active": "Lightly Active",
-        "moderately_active": "Moderately Active",
-        "very_active": "Very Active"
-    }
+    activity_value = query.data.split(":")[1]
+    activity = ActivityLevel(activity_value)
 
     state = await user_repo.get_onboarding_state(telegram_id)
-    state.collected_data["activity_level"] = activity
+    state.collected_data["activity_level"] = activity_value
     state.current_step = "goal"
     await user_repo.save_onboarding_state(state)
 
     await query.edit_message_text(
-        f"Activity Level: {activity_labels.get(activity, activity)}\n\n"
-        "What's your goal?",
+        Messages.ONBOARDING_ACTIVITY_CONFIRM.format(
+            activity=get_activity_label(activity)
+        ),
         reply_markup=get_goal_keyboard()
     )
     return GOAL
@@ -202,16 +200,11 @@ async def receive_goal(update: Update, context: ContextTypes.DEFAULT_TYPE) -> in
     await query.answer()
 
     telegram_id = query.from_user.id
-    goal = query.data.split(":")[1]
-
-    goal_labels = {
-        "lose": "Lose Weight",
-        "maintain": "Maintain Weight",
-        "gain": "Gain Weight"
-    }
+    goal_value = query.data.split(":")[1]
+    goal = Goal(goal_value)
 
     state = await user_repo.get_onboarding_state(telegram_id)
-    state.collected_data["goal"] = goal
+    state.collected_data["goal"] = goal_value
     state.current_step = "confirm"
     await user_repo.save_onboarding_state(state)
 
@@ -221,30 +214,21 @@ async def receive_goal(update: Update, context: ContextTypes.DEFAULT_TYPE) -> in
         weight_kg=data["weight"],
         height_cm=data["height"],
         age=data["age"],
-        sex=data["sex"],
-        activity_level=data["activity_level"],
-        goal=data["goal"]
+        sex=Sex(data["sex"]),
+        activity_level=ActivityLevel(data["activity_level"]),
+        goal=goal
     )
     state.collected_data["daily_target"] = daily_target
     await user_repo.save_onboarding_state(state)
 
-    activity_labels = {
-        "sedentary": "Sedentary",
-        "lightly_active": "Lightly Active",
-        "moderately_active": "Moderately Active",
-        "very_active": "Very Active"
-    }
-
-    summary = (
-        "Profile Summary:\n\n"
-        f"Weight: {data['weight']} kg\n"
-        f"Height: {data['height']} cm\n"
-        f"Age: {data['age']}\n"
-        f"Sex: {data['sex'].capitalize()}\n"
-        f"Activity: {activity_labels.get(data['activity_level'], data['activity_level'])}\n"
-        f"Goal: {goal_labels.get(goal, goal)}\n\n"
-        f"Recommended Daily Calories: {daily_target} kcal\n\n"
-        "Is this correct?"
+    summary = Messages.ONBOARDING_SUMMARY.format(
+        weight=data["weight"],
+        height=data["height"],
+        age=data["age"],
+        sex=get_sex_label(Sex(data["sex"])),
+        activity=get_activity_label(ActivityLevel(data["activity_level"])),
+        goal=get_goal_label(goal),
+        daily_target=daily_target
     )
 
     await query.edit_message_text(summary, reply_markup=get_confirmation_keyboard())
@@ -267,9 +251,7 @@ async def confirm_profile(update: Update, context: ContextTypes.DEFAULT_TYPE) ->
             collected_data={}
         )
         await user_repo.save_onboarding_state(state)
-        await query.edit_message_text(
-            "Let's start over.\n\nWhat's your current weight in kg?"
-        )
+        await query.edit_message_text(Messages.ONBOARDING_RESTART)
         return WEIGHT
 
     # Save profile
@@ -289,14 +271,7 @@ async def confirm_profile(update: Update, context: ContextTypes.DEFAULT_TYPE) ->
     await user_repo.clear_onboarding_state(telegram_id)
 
     await query.edit_message_text(
-        f"Profile saved!\n\n"
-        f"Your daily calorie target is {data['daily_target']} kcal.\n\n"
-        "You can now:\n"
-        "- Send a food photo to log a meal\n"
-        "- Send a text description of what you ate\n"
-        "- Use /summarize to see your nutrition summary\n"
-        "- Use /profile to view your stats\n"
-        "- Use /help for all commands"
+        Messages.ONBOARDING_COMPLETE.format(daily_target=data["daily_target"])
     )
 
     # Send webapp button in separate message (WebApp buttons need a new message)
@@ -304,7 +279,7 @@ async def confirm_profile(update: Update, context: ContextTypes.DEFAULT_TYPE) ->
     if webapp_keyboard:
         await context.bot.send_message(
             chat_id=telegram_id,
-            text="Open the dashboard to view your nutrition charts and calendar:",
+            text=Messages.WEBAPP_PROMPT,
             reply_markup=webapp_keyboard
         )
 
@@ -313,9 +288,7 @@ async def confirm_profile(update: Update, context: ContextTypes.DEFAULT_TYPE) ->
 
 async def cancel(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
     """Cancel the onboarding process."""
-    await update.message.reply_text(
-        "Onboarding cancelled. Use /start to begin again."
-    )
+    await update.message.reply_text(Messages.ONBOARDING_CANCELLED)
     return ConversationHandler.END
 
 

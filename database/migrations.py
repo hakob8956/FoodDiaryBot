@@ -1,12 +1,35 @@
+"""
+Database migrations.
+
+Handles table creation and schema updates for both SQLite and Turso backends.
+Uses constants for default values to avoid hardcoding.
+"""
+
 import logging
-from database.connection import db
-from config import settings
+
+from database.connection import db, SQLiteDatabase, TursoDatabase
+from constants import (
+    Sex,
+    ActivityLevel,
+    Goal,
+    InputType,
+    DEFAULT_REMINDER_HOUR,
+)
 
 logger = logging.getLogger(__name__)
 
 
-# Individual table creation statements
-CREATE_USERS_TABLE = """
+# =============================================================================
+# TABLE SCHEMAS
+# =============================================================================
+
+# Build CHECK constraints from enums
+SEX_VALUES = ", ".join(f"'{s.value}'" for s in Sex)
+ACTIVITY_VALUES = ", ".join(f"'{a.value}'" for a in ActivityLevel)
+GOAL_VALUES = ", ".join(f"'{g.value}'" for g in Goal)
+INPUT_TYPE_VALUES = ", ".join(f"'{i.value}'" for i in InputType)
+
+CREATE_USERS_TABLE = f"""
 CREATE TABLE IF NOT EXISTS users (
     telegram_id INTEGER PRIMARY KEY,
     username TEXT,
@@ -14,16 +37,14 @@ CREATE TABLE IF NOT EXISTS users (
     weight REAL,
     height REAL,
     age INTEGER,
-    sex TEXT CHECK(sex IN ('male', 'female')),
-    activity_level TEXT CHECK(activity_level IN (
-        'sedentary', 'lightly_active', 'moderately_active', 'very_active'
-    )),
-    goal TEXT CHECK(goal IN ('lose', 'maintain', 'gain')),
+    sex TEXT CHECK(sex IN ({SEX_VALUES})),
+    activity_level TEXT CHECK(activity_level IN ({ACTIVITY_VALUES})),
+    goal TEXT CHECK(goal IN ({GOAL_VALUES})),
     daily_calorie_target INTEGER,
     calorie_override INTEGER DEFAULT 0,
     onboarding_complete INTEGER DEFAULT 0,
     notifications_enabled INTEGER DEFAULT 1,
-    reminder_hour INTEGER DEFAULT 20,
+    reminder_hour INTEGER DEFAULT {DEFAULT_REMINDER_HOUR},
     last_reminder_sent TIMESTAMP,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
@@ -39,12 +60,12 @@ CREATE TABLE IF NOT EXISTS onboarding_state (
 )
 """
 
-CREATE_FOOD_LOGS_TABLE = """
+CREATE_FOOD_LOGS_TABLE = f"""
 CREATE TABLE IF NOT EXISTS food_logs (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     telegram_id INTEGER NOT NULL,
     logged_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    input_type TEXT CHECK(input_type IN ('photo', 'text', 'photo_text')),
+    input_type TEXT CHECK(input_type IN ({INPUT_TYPE_VALUES})),
     raw_input TEXT,
     photo_file_id TEXT,
     analysis_json TEXT NOT NULL,
@@ -63,7 +84,11 @@ ON food_logs(telegram_id, logged_at)
 """
 
 
-async def run_migrations():
+# =============================================================================
+# MIGRATION FUNCTIONS
+# =============================================================================
+
+async def run_migrations() -> None:
     """Create all database tables and run migrations."""
     logger.info("Running database migrations...")
 
@@ -80,64 +105,49 @@ async def run_migrations():
     # Run additional migrations for existing databases
     await _migrate_add_notification_columns()
 
-    print("Database migrations completed successfully.")
     logger.info("Database migrations completed successfully.")
 
 
-async def _migrate_add_notification_columns():
+async def _migrate_add_notification_columns() -> None:
     """Add notification columns to existing users table if missing."""
-    if db.use_turso:
-        # For Turso, just try to add columns (will fail silently if they exist)
-        await _migrate_turso_notification_columns()
-    else:
-        # For SQLite, use PRAGMA to check existing columns
-        await _migrate_sqlite_notification_columns()
-
-
-async def _migrate_turso_notification_columns():
-    """Add notification columns for Turso (try/except for each)."""
     columns_to_add = [
         ("notifications_enabled", "INTEGER DEFAULT 1"),
-        ("reminder_hour", "INTEGER DEFAULT 20"),
+        ("reminder_hour", f"INTEGER DEFAULT {DEFAULT_REMINDER_HOUR}"),
         ("last_reminder_sent", "TIMESTAMP"),
     ]
 
-    for col_name, col_type in columns_to_add:
+    if isinstance(db, TursoDatabase):
+        await _migrate_columns_turso(columns_to_add)
+    else:
+        await _migrate_columns_sqlite(columns_to_add)
+
+
+async def _migrate_columns_turso(columns: list[tuple[str, str]]) -> None:
+    """Add columns for Turso (try/except for each)."""
+    for col_name, col_type in columns:
         try:
-            db._turso_conn.execute(
-                f"ALTER TABLE users ADD COLUMN {col_name} {col_type}"
-            )
-            db._turso_conn.commit()
+            await db.execute(f"ALTER TABLE users ADD COLUMN {col_name} {col_type}")
             logger.info(f"Added column {col_name} to users table")
         except Exception as e:
-            # Column likely already exists
-            if "duplicate column" in str(e).lower() or "already exists" in str(e).lower():
-                pass
+            error_msg = str(e).lower()
+            # Column likely already exists - this is expected
+            if "duplicate column" in error_msg or "already exists" in error_msg:
+                logger.debug(f"Column {col_name} already exists")
             else:
-                logger.debug(f"Column {col_name} might already exist: {e}")
+                logger.warning(f"Could not add column {col_name}: {e}")
 
 
-async def _migrate_sqlite_notification_columns():
-    """Add notification columns for SQLite (uses PRAGMA)."""
-    import aiosqlite
+async def _migrate_columns_sqlite(columns: list[tuple[str, str]]) -> None:
+    """Add columns for SQLite (uses PRAGMA to check existing columns)."""
+    # Get existing columns
+    rows = await db.fetch_all("PRAGMA table_info(users)")
+    existing_columns = {row['name'] for row in rows}
 
-    async with db.get_connection() as conn:
-        # Check existing columns
-        cursor = await conn.execute("PRAGMA table_info(users)")
-        rows = await cursor.fetchall()
-        columns = {row[1] for row in rows}
-
-        # Add missing columns
-        if "notifications_enabled" not in columns:
-            await conn.execute("ALTER TABLE users ADD COLUMN notifications_enabled INTEGER DEFAULT 1")
-            logger.info("Added notifications_enabled column")
-
-        if "reminder_hour" not in columns:
-            await conn.execute("ALTER TABLE users ADD COLUMN reminder_hour INTEGER DEFAULT 20")
-            logger.info("Added reminder_hour column")
-
-        if "last_reminder_sent" not in columns:
-            await conn.execute("ALTER TABLE users ADD COLUMN last_reminder_sent TIMESTAMP")
-            logger.info("Added last_reminder_sent column")
-
-        await conn.commit()
+    # Add missing columns
+    for col_name, col_type in columns:
+        if col_name not in existing_columns:
+            try:
+                await db.execute(f"ALTER TABLE users ADD COLUMN {col_name} {col_type}")
+                logger.info(f"Added column {col_name} to users table")
+            except Exception as e:
+                logger.warning(f"Could not add column {col_name}: {e}")

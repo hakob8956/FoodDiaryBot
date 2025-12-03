@@ -1,7 +1,15 @@
+"""
+Food analysis orchestration service.
+
+Coordinates between OpenAI analysis and food log storage.
+"""
+
 import json
 from typing import Optional
 from datetime import date
 
+from config import settings
+from constants import InputType
 from services.openai_service import openai_service
 from database.repositories.food_log_repo import food_log_repo
 from database.repositories.user_repo import user_repo
@@ -14,9 +22,9 @@ class FoodAnalyzer:
     async def analyze_and_log(
         self,
         telegram_id: int,
-        text_description: str = None,
-        image_bytes: bytes = None,
-        photo_file_id: str = None
+        text_description: Optional[str] = None,
+        image_bytes: Optional[bytes] = None,
+        photo_file_id: Optional[str] = None
     ) -> tuple[dict, FoodLog]:
         """
         Analyze food and create a log entry.
@@ -26,11 +34,11 @@ class FoodAnalyzer:
         """
         # Determine input type
         if image_bytes and text_description:
-            input_type = "photo_text"
+            input_type = InputType.PHOTO_TEXT
         elif image_bytes:
-            input_type = "photo"
+            input_type = InputType.PHOTO
         else:
-            input_type = "text"
+            input_type = InputType.TEXT
 
         # Encode image if present
         image_base64 = None
@@ -62,7 +70,7 @@ class FoodAnalyzer:
 
         return analysis, food_log
 
-    async def get_daily_progress(self, telegram_id: int) -> dict:
+    async def get_daily_progress(self, telegram_id: int) -> Optional[dict]:
         """Get today's progress toward calorie goal."""
         user = await user_repo.get_user(telegram_id)
         if not user or not user.daily_calorie_target:
@@ -71,7 +79,7 @@ class FoodAnalyzer:
         today = date.today()
         totals = await food_log_repo.get_daily_totals(telegram_id, today)
 
-        calories_consumed = totals["calories"]
+        calories_consumed = totals.calories
         target = user.daily_calorie_target
         remaining = target - calories_consumed
 
@@ -80,13 +88,18 @@ class FoodAnalyzer:
             "target": target,
             "remaining": remaining,
             "percentage": round((calories_consumed / target) * 100, 1) if target > 0 else 0,
-            "protein": totals["protein"],
-            "carbs": totals["carbs"],
-            "fat": totals["fat"],
-            "meal_count": totals["meal_count"]
+            "protein": totals.protein,
+            "carbs": totals.carbs,
+            "fat": totals.fat,
+            "meal_count": totals.meal_count
         }
 
-    def format_log_response(self, analysis: dict, progress: Optional[dict] = None, entry_id: int = None) -> str:
+    def format_log_response(
+        self,
+        analysis: dict,
+        progress: Optional[dict] = None,
+        entry_id: Optional[int] = None
+    ) -> str:
         """Format a human-readable response for the user."""
         items = analysis.get("items", [])
         totals = analysis.get("totals", {})
@@ -111,7 +124,7 @@ class FoodAnalyzer:
                 response += f" ({abs(progress['remaining'])} over target)"
 
         confidence = analysis.get("overall_confidence", 0)
-        if confidence < 0.7:
+        if confidence < settings.confidence_warning_threshold:
             response += "\n(estimate has higher uncertainty)"
 
         if entry_id:

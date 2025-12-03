@@ -1,6 +1,12 @@
+"""
+FoodGPT Telegram Bot - Main Entry Point.
+
+A nutrition tracking bot that uses GPT-4 Vision to analyze food photos.
+"""
+
 import logging
-import asyncio
 import threading
+
 from telegram import Update
 from telegram.ext import Application, ContextTypes
 
@@ -17,6 +23,7 @@ from bot.handlers.notifications import get_notifications_handler
 from bot.handlers.dashboard import get_dashboard_handler
 from bot.handlers.webapp import get_webapp_data_handler
 from bot.handlers.debug import get_debug_handlers
+from bot.messages import Messages
 from services.reminder_service import check_and_send_reminders
 
 
@@ -28,38 +35,42 @@ logging.basicConfig(
 logger = logging.getLogger(__name__)
 
 
-async def error_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
+async def error_handler(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     """Handle all uncaught exceptions."""
-    logger.error(f"Exception while handling update: {context.error}", exc_info=context.error)
+    logger.error(
+        f"Exception while handling update: {context.error}",
+        exc_info=context.error
+    )
 
     # Try to notify user
     if update and update.effective_message:
         try:
-            await update.effective_message.reply_text(
-                "Sorry, something went wrong. Please try again."
-            )
+            await update.effective_message.reply_text(Messages.UNKNOWN_ERROR)
         except Exception:
             pass  # Ignore if we can't send the error message
 
 
-async def post_init(application: Application):
+async def post_init(application: Application) -> None:
     """Run after application is initialized but before polling starts."""
     logger.info("Running database migrations...")
     await run_migrations()
     logger.info("Database ready.")
 
-    # Schedule reminder job (runs every hour)
+    # Schedule reminder job (uses settings for intervals)
     if application.job_queue:
         application.job_queue.run_repeating(
             check_and_send_reminders,
-            interval=3600,  # Every hour
-            first=60,  # First run after 60 seconds
+            interval=settings.reminder_interval_seconds,
+            first=settings.reminder_first_run_delay,
             name="daily_reminder_check"
         )
-        logger.info("Daily reminder job scheduled (hourly)")
+        logger.info(
+            f"Daily reminder job scheduled "
+            f"(every {settings.reminder_interval_seconds}s)"
+        )
 
 
-def run_api_server():
+def run_api_server() -> None:
     """Run the Mini App API server in a separate thread."""
     import uvicorn
     from webapp.api.server import app
@@ -72,13 +83,15 @@ def run_api_server():
     )
 
 
-def main():
+def main() -> None:
     """Start the bot and optionally the Mini App API server."""
     logger.info("Starting FoodGPT bot...")
 
     # Start Mini App API server if enabled
     if settings.webapp_enabled:
-        logger.info(f"Starting Mini App API server on port {settings.webapp_port}...")
+        logger.info(
+            f"Starting Mini App API server on port {settings.webapp_port}..."
+        )
         api_thread = threading.Thread(target=run_api_server, daemon=True)
         api_thread.start()
         logger.info("Mini App API server started")

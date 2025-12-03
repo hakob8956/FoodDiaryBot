@@ -1,22 +1,25 @@
+"""
+Food logging handler.
+
+Handles incoming food photos and text descriptions.
+"""
+
 from telegram import Update
 from telegram.ext import ContextTypes, MessageHandler, filters
 
-from database.repositories.user_repo import user_repo
+from database.models import User
 from services.food_analyzer import food_analyzer
+from bot.messages import Messages
+from bot.utils.decorators import require_onboarding
 
 
-async def handle_food_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
+@require_onboarding
+async def handle_food_message(
+    update: Update,
+    context: ContextTypes.DEFAULT_TYPE,
+    user: User
+) -> None:
     """Handle incoming food photos or text descriptions."""
-    telegram_id = update.effective_user.id
-
-    # Check if user is onboarded
-    user = await user_repo.get_user(telegram_id)
-    if not user or not user.onboarding_complete:
-        await update.message.reply_text(
-            "Please set up your profile first with /start"
-        )
-        return
-
     # Extract message content
     message = update.message
     text_description = message.caption or message.text
@@ -38,27 +41,29 @@ async def handle_food_message(update: Update, context: ContextTypes.DEFAULT_TYPE
         image_bytes = await file.download_as_bytearray()
 
     # Send "analyzing" message
-    status_message = await update.message.reply_text("Analyzing your food...")
+    status_message = await update.message.reply_text(Messages.ANALYZING_FOOD)
 
     try:
         # Analyze and log
         analysis, food_log = await food_analyzer.analyze_and_log(
-            telegram_id=telegram_id,
+            telegram_id=user.telegram_id,
             text_description=text_description,
             image_bytes=bytes(image_bytes) if image_bytes else None,
             photo_file_id=photo_file_id
         )
 
         # Get daily progress
-        progress = await food_analyzer.get_daily_progress(telegram_id)
+        progress = await food_analyzer.get_daily_progress(user.telegram_id)
 
         # Format response with entry ID for easy deletion
-        response = food_analyzer.format_log_response(analysis, progress, entry_id=food_log.id)
+        response = food_analyzer.format_log_response(
+            analysis, progress, entry_id=food_log.id
+        )
 
         await status_message.edit_text(response)
 
     except Exception as e:
-        error_msg = "Sorry, I couldn't analyze this food. Please try again."
+        error_msg = Messages.ANALYSIS_ERROR
         if "json" in str(e).lower():
             error_msg += " (Analysis format error)"
 

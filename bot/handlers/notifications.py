@@ -1,10 +1,25 @@
+"""
+Notification settings handler.
+
+Handles /notifications command for managing reminder settings.
+"""
+
 from telegram import Update
 from telegram.ext import ContextTypes, CommandHandler
 
 from database.repositories.user_repo import user_repo
+from database.models import User
+from constants import REMINDER_HOUR_MIN, REMINDER_HOUR_MAX
+from bot.messages import Messages
+from bot.utils.decorators import require_onboarding
 
 
-async def notifications_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
+@require_onboarding
+async def notifications_command(
+    update: Update,
+    context: ContextTypes.DEFAULT_TYPE,
+    user: User
+) -> None:
     """
     Handle /notifications command.
 
@@ -14,30 +29,15 @@ async def notifications_command(update: Update, context: ContextTypes.DEFAULT_TY
     - /notifications off - Disable reminders
     - /notifications time 20 - Set reminder hour (0-23)
     """
-    telegram_id = update.effective_user.id
-
-    # Check if user is onboarded
-    user = await user_repo.get_user(telegram_id)
-    if not user or not user.onboarding_complete:
-        await update.message.reply_text(
-            "Please set up your profile first with /start"
-        )
-        return
-
+    telegram_id = user.telegram_id
     args = context.args
 
     # No args - show current settings
     if not args:
-        status = "enabled" if user.notifications_enabled else "disabled"
+        status = Messages.NOTIFICATIONS_ENABLED if user.notifications_enabled else Messages.NOTIFICATIONS_DISABLED
         hour_str = f"{user.reminder_hour:02d}:00"
         await update.message.reply_text(
-            f"Notification Settings:\n\n"
-            f"Daily reminders: {status}\n"
-            f"Reminder time: {hour_str}\n\n"
-            f"Commands:\n"
-            f"/notifications on - Enable reminders\n"
-            f"/notifications off - Disable reminders\n"
-            f"/notifications time <hour> - Set time (0-23)"
+            Messages.NOTIFICATIONS_STATUS.format(status=status, hour=user.reminder_hour)
         )
         return
 
@@ -47,44 +47,34 @@ async def notifications_command(update: Update, context: ContextTypes.DEFAULT_TY
     if action == "on":
         await user_repo.set_notifications_enabled(telegram_id, True)
         await update.message.reply_text(
-            f"Daily reminders enabled!\n"
-            f"You'll be reminded at {user.reminder_hour:02d}:00 if you haven't logged food."
+            Messages.NOTIFICATIONS_ON.format(hour=user.reminder_hour)
         )
         return
 
     # Disable notifications
     if action == "off":
         await user_repo.set_notifications_enabled(telegram_id, False)
-        await update.message.reply_text(
-            "Daily reminders disabled.\n"
-            "Use /notifications on to re-enable."
-        )
+        await update.message.reply_text(Messages.NOTIFICATIONS_OFF)
         return
 
     # Set reminder time
     if action == "time":
         if len(args) < 2:
-            await update.message.reply_text(
-                "Please specify an hour (0-23).\n"
-                "Example: /notifications time 20"
-            )
+            await update.message.reply_text(Messages.NOTIFICATIONS_TIME_INVALID)
             return
 
         try:
             hour = int(args[1])
-            if not 0 <= hour <= 23:
+            if not REMINDER_HOUR_MIN <= hour <= REMINDER_HOUR_MAX:
                 raise ValueError()
 
             await user_repo.set_reminder_hour(telegram_id, hour)
             await update.message.reply_text(
-                f"Reminder time set to {hour:02d}:00"
+                Messages.NOTIFICATIONS_TIME_SET.format(hour=hour)
             )
 
         except ValueError:
-            await update.message.reply_text(
-                "Invalid hour. Please use a number between 0 and 23.\n"
-                "Example: /notifications time 20 (for 8 PM)"
-            )
+            await update.message.reply_text(Messages.NOTIFICATIONS_TIME_INVALID)
         return
 
     # Unknown action

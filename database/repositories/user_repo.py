@@ -1,14 +1,27 @@
+"""
+User repository.
+
+Handles all database operations related to users and onboarding state.
+"""
+
 import json
 from typing import Optional
+
 from database.connection import db
 from database.models import User, OnboardingState
+from constants import REMINDER_HOUR_MIN, REMINDER_HOUR_MAX
 
 
 class UserRepository:
     """Repository for user operations."""
 
-    async def create_user(self, telegram_id: int, username: str = None, first_name: str = None) -> User:
-        """Create a new user."""
+    async def create_user(
+        self,
+        telegram_id: int,
+        username: Optional[str] = None,
+        first_name: Optional[str] = None
+    ) -> User:
+        """Create a new user or update existing."""
         await db.execute(
             """
             INSERT INTO users (telegram_id, username, first_name)
@@ -33,7 +46,7 @@ class UserRepository:
         return None
 
     async def update_user(self, telegram_id: int, **fields) -> Optional[User]:
-        """Update user fields."""
+        """Update user fields dynamically."""
         if not fields:
             return await self.get_user(telegram_id)
 
@@ -46,7 +59,11 @@ class UserRepository:
         )
         return await self.get_user(telegram_id)
 
-    async def set_onboarding_complete(self, telegram_id: int, daily_target: int) -> Optional[User]:
+    async def set_onboarding_complete(
+        self,
+        telegram_id: int,
+        daily_target: int
+    ) -> Optional[User]:
         """Mark user onboarding as complete with calculated calorie target."""
         return await self.update_user(
             telegram_id,
@@ -54,7 +71,11 @@ class UserRepository:
             onboarding_complete=1
         )
 
-    async def set_calorie_override(self, telegram_id: int, calories: int) -> Optional[User]:
+    async def set_calorie_override(
+        self,
+        telegram_id: int,
+        calories: int
+    ) -> Optional[User]:
         """Set manual calorie override."""
         return await self.update_user(
             telegram_id,
@@ -66,7 +87,9 @@ class UserRepository:
         """Update user weight."""
         return await self.update_user(telegram_id, weight=weight)
 
-    # Onboarding state management
+    # =========================================================================
+    # ONBOARDING STATE MANAGEMENT
+    # =========================================================================
 
     async def get_onboarding_state(self, telegram_id: int) -> Optional[OnboardingState]:
         """Get current onboarding state."""
@@ -80,7 +103,7 @@ class UserRepository:
             return OnboardingState(**data)
         return None
 
-    async def save_onboarding_state(self, state: OnboardingState):
+    async def save_onboarding_state(self, state: OnboardingState) -> None:
         """Save or update onboarding state."""
         await db.execute(
             """
@@ -94,14 +117,16 @@ class UserRepository:
             (state.telegram_id, state.current_step, json.dumps(state.collected_data))
         )
 
-    async def clear_onboarding_state(self, telegram_id: int):
+    async def clear_onboarding_state(self, telegram_id: int) -> None:
         """Remove onboarding state after completion."""
         await db.execute(
             "DELETE FROM onboarding_state WHERE telegram_id = ?",
             (telegram_id,)
         )
 
-    # Notification methods
+    # =========================================================================
+    # NOTIFICATION METHODS
+    # =========================================================================
 
     async def get_users_for_reminder(self, current_hour: int) -> list[User]:
         """
@@ -128,21 +153,34 @@ class UserRepository:
         )
         return [User(**row) for row in rows]
 
-    async def update_last_reminder(self, telegram_id: int):
+    async def update_last_reminder(self, telegram_id: int) -> None:
         """Update the last_reminder_sent timestamp."""
         await db.execute(
             "UPDATE users SET last_reminder_sent = CURRENT_TIMESTAMP WHERE telegram_id = ?",
             (telegram_id,)
         )
 
-    async def set_notifications_enabled(self, telegram_id: int, enabled: bool) -> Optional[User]:
+    async def set_notifications_enabled(
+        self,
+        telegram_id: int,
+        enabled: bool
+    ) -> Optional[User]:
         """Enable or disable notifications for a user."""
-        return await self.update_user(telegram_id, notifications_enabled=1 if enabled else 0)
+        return await self.update_user(
+            telegram_id,
+            notifications_enabled=1 if enabled else 0
+        )
 
-    async def set_reminder_hour(self, telegram_id: int, hour: int) -> Optional[User]:
-        """Set the preferred reminder hour (0-23)."""
-        if not 0 <= hour <= 23:
-            raise ValueError("Hour must be between 0 and 23")
+    async def set_reminder_hour(
+        self,
+        telegram_id: int,
+        hour: int
+    ) -> Optional[User]:
+        """Set the preferred reminder hour."""
+        if not REMINDER_HOUR_MIN <= hour <= REMINDER_HOUR_MAX:
+            raise ValueError(
+                f"Hour must be between {REMINDER_HOUR_MIN} and {REMINDER_HOUR_MAX}"
+            )
         return await self.update_user(telegram_id, reminder_hour=hour)
 
 

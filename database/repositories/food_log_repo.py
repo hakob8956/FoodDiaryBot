@@ -1,8 +1,16 @@
+"""
+Food log repository.
+
+Handles all database operations related to food logs.
+"""
+
 import json
 from typing import Optional
-from datetime import datetime, date
+from datetime import date
+
 from database.connection import db
-from database.models import FoodLog
+from database.models import FoodLog, DailyTotals, RangeTotals
+from constants import InputType
 
 
 class FoodLogRepository:
@@ -11,19 +19,19 @@ class FoodLogRepository:
     async def create_log(
         self,
         telegram_id: int,
-        input_type: str,
+        input_type: InputType,
         analysis_json: str,
         total_calories: int,
         total_protein: float,
         total_carbs: float,
         total_fat: float,
         confidence_score: float,
-        raw_input: str = None,
-        photo_file_id: str = None
+        raw_input: Optional[str] = None,
+        photo_file_id: Optional[str] = None
     ) -> FoodLog:
         """Create a new food log entry."""
-        # Use RETURNING id to get the new ID (works with both SQLite 3.35+ and Turso)
-        row = await db.fetch_one(
+        # Use insert_returning_id for clean ID retrieval
+        new_id = await db.insert_returning_id(
             """
             INSERT INTO food_logs (
                 telegram_id, input_type, raw_input, photo_file_id,
@@ -31,15 +39,20 @@ class FoodLogRepository:
                 total_carbs, total_fat, confidence_score
             )
             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-            RETURNING id
             """,
             (
-                telegram_id, input_type, raw_input, photo_file_id,
-                analysis_json, total_calories, total_protein,
-                total_carbs, total_fat, confidence_score
+                telegram_id,
+                input_type.value if isinstance(input_type, InputType) else input_type,
+                raw_input,
+                photo_file_id,
+                analysis_json,
+                total_calories,
+                total_protein,
+                total_carbs,
+                total_fat,
+                confidence_score
             )
         )
-        new_id = row["id"]
         return await self.get_log_by_id(new_id)
 
     async def get_log_by_id(self, log_id: int) -> Optional[FoodLog]:
@@ -92,7 +105,7 @@ class FoodLogRepository:
         self,
         telegram_id: int,
         target_date: date
-    ) -> dict:
+    ) -> DailyTotals:
         """Get aggregated totals for a specific date."""
         row = await db.fetch_one(
             """
@@ -108,16 +121,14 @@ class FoodLogRepository:
             """,
             (telegram_id, target_date.isoformat())
         )
-        return dict(row) if row else {
-            "calories": 0, "protein": 0, "carbs": 0, "fat": 0, "meal_count": 0
-        }
+        return DailyTotals.from_dict(row) if row else DailyTotals()
 
     async def get_range_totals(
         self,
         telegram_id: int,
         start_date: date,
         end_date: date
-    ) -> dict:
+    ) -> RangeTotals:
         """Get aggregated totals for a date range."""
         row = await db.fetch_one(
             """
@@ -134,9 +145,7 @@ class FoodLogRepository:
             """,
             (telegram_id, start_date.isoformat(), end_date.isoformat())
         )
-        return dict(row) if row else {
-            "calories": 0, "protein": 0, "carbs": 0, "fat": 0, "meal_count": 0
-        }
+        return RangeTotals.from_dict(row) if row else RangeTotals()
 
     async def get_all_logs_json(self, telegram_id: int) -> list[dict]:
         """Get all logs as raw JSON for /rawlog command."""
@@ -153,11 +162,18 @@ class FoodLogRepository:
         result = []
         for row in rows:
             entry = dict(row)
-            entry["analysis"] = json.loads(entry.pop("analysis_json"))
+            try:
+                entry["analysis"] = json.loads(entry.pop("analysis_json"))
+            except (json.JSONDecodeError, KeyError):
+                entry["analysis"] = {}
             result.append(entry)
         return result
 
-    async def get_recent_logs(self, telegram_id: int, limit: int = 5) -> list[FoodLog]:
+    async def get_recent_logs(
+        self,
+        telegram_id: int,
+        limit: int = 5
+    ) -> list[FoodLog]:
         """Get the most recent food logs for a user."""
         rows = await db.fetch_all(
             """
