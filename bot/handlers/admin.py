@@ -24,17 +24,24 @@ async def broadcast_command(
 
     Usage: /broadcast <message>
     Only works for admin user.
+    Preserves newlines and formatting.
     """
     # Check if user is admin
     if update.effective_user.id != settings.admin_user_id:
         return
 
-    # Get message text
-    if not context.args:
+    # Get full message text after /broadcast command
+    full_text = update.message.text or ""
+
+    # Remove the /broadcast command prefix
+    if full_text.startswith("/broadcast"):
+        message = full_text[len("/broadcast"):].strip()
+    else:
+        message = ""
+
+    if not message:
         await update.message.reply_text("Usage: /broadcast <message>")
         return
-
-    message = " ".join(context.args)
 
     # Get all users
     users = await user_repo.get_all_users()
