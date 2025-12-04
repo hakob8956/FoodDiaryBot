@@ -174,20 +174,16 @@ async def _migrate_update_goal_constraint() -> None:
     """
     Update the goal CHECK constraint to include 'gain_muscles'.
 
-    SQLite doesn't support ALTER CONSTRAINT, so we need to recreate the table.
+    SQLite/Turso don't support ALTER CONSTRAINT, so we need to recreate the table.
     This migration backs up data, recreates the table, and restores data.
     """
-    if isinstance(db, TursoDatabase):
-        # Turso may handle this differently
-        return
-
     try:
         # Check if constraint needs updating by trying to find gain_muscles
         rows = await db.fetch_all("SELECT sql FROM sqlite_master WHERE type='table' AND name='users'")
         if not rows:
             return
 
-        table_sql = rows[0]['sql']
+        table_sql = rows[0].get('sql', '') if rows[0] else ''
         if "'gain_muscles'" in table_sql:
             # Constraint already includes gain_muscles
             return
