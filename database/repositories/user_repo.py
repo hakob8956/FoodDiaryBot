@@ -184,6 +184,15 @@ class UserRepository:
         return await self.update_user(telegram_id, reminder_hour=hour)
 
     # =========================================================================
+    # ADMIN QUERIES
+    # =========================================================================
+
+    async def get_all_users(self) -> list[User]:
+        """Get all users."""
+        rows = await db.fetch_all("SELECT * FROM users")
+        return [User(**row) for row in rows]
+
+    # =========================================================================
     # ACCOUNT DELETION
     # =========================================================================
 

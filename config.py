@@ -107,6 +107,11 @@ class Settings(BaseSettings):
     )
 
     # =========================================================================
+    # ADMIN
+    # =========================================================================
+    admin_user_id: int = Field(default=0, validation_alias="ADMIN_USER_ID")
+
+    # =========================================================================
     # MINI APP / WEBAPP
     # =========================================================================
     webapp_enabled: bool = Field(default=True, validation_alias="WEBAPP_ENABLED")
