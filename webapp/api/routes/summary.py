@@ -55,6 +55,10 @@ class UserProfile(BaseModel):
     age: Optional[int]
     goal: Optional[str]
     daily_calorie_target: Optional[int]
+    protein_target: Optional[int]
+    carbs_target: Optional[int]
+    fat_target: Optional[int]
+    macro_override: bool
     notifications_enabled: bool
     reminder_hour: int
 
@@ -139,6 +143,10 @@ async def get_user_profile(
             age=None,
             goal=None,
             daily_calorie_target=None,
+            protein_target=None,
+            carbs_target=None,
+            fat_target=None,
+            macro_override=False,
             notifications_enabled=True,
             reminder_hour=20
         )
@@ -149,8 +157,12 @@ async def get_user_profile(
         weight=profile.weight,
         height=profile.height,
         age=profile.age,
-        goal=profile.goal,
+        goal=profile.goal.value if profile.goal else None,
         daily_calorie_target=profile.daily_calorie_target,
+        protein_target=profile.protein_target,
+        carbs_target=profile.carbs_target,
+        fat_target=profile.fat_target,
+        macro_override=profile.macro_override,
         notifications_enabled=profile.notifications_enabled,
         reminder_hour=profile.reminder_hour
     )

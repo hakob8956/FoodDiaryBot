@@ -104,6 +104,8 @@ async def run_migrations() -> None:
 
     # Run additional migrations for existing databases
     await _migrate_add_notification_columns()
+    await _migrate_add_macro_columns()
+    await _migrate_update_goal_constraint()
 
     logger.info("Database migrations completed successfully.")
 
@@ -151,3 +153,99 @@ async def _migrate_columns_sqlite(columns: list[tuple[str, str]]) -> None:
                 logger.info(f"Added column {col_name} to users table")
             except Exception as e:
                 logger.warning(f"Could not add column {col_name}: {e}")
+
+
+async def _migrate_add_macro_columns() -> None:
+    """Add macro target columns to existing users table if missing."""
+    columns_to_add = [
+        ("protein_target", "INTEGER"),
+        ("carbs_target", "INTEGER"),
+        ("fat_target", "INTEGER"),
+        ("macro_override", "INTEGER DEFAULT 0"),
+    ]
+
+    if isinstance(db, TursoDatabase):
+        await _migrate_columns_turso(columns_to_add)
+    else:
+        await _migrate_columns_sqlite(columns_to_add)
+
+
+async def _migrate_update_goal_constraint() -> None:
+    """
+    Update the goal CHECK constraint to include 'gain_muscles'.
+
+    SQLite doesn't support ALTER CONSTRAINT, so we need to recreate the table.
+    This migration backs up data, recreates the table, and restores data.
+    """
+    if isinstance(db, TursoDatabase):
+        # Turso may handle this differently
+        return
+
+    try:
+        # Check if constraint needs updating by trying to find gain_muscles
+        rows = await db.fetch_all("SELECT sql FROM sqlite_master WHERE type='table' AND name='users'")
+        if not rows:
+            return
+
+        table_sql = rows[0]['sql']
+        if "'gain_muscles'" in table_sql:
+            # Constraint already includes gain_muscles
+            return
+
+        logger.info("Updating goal CHECK constraint to include 'gain_muscles'...")
+
+        # Recreate table with updated constraint
+        await db.execute("PRAGMA foreign_keys=OFF")
+
+        # Create new table with updated constraint
+        await db.execute(f"""
+            CREATE TABLE IF NOT EXISTS users_new (
+                telegram_id INTEGER PRIMARY KEY,
+                username TEXT,
+                first_name TEXT,
+                weight REAL,
+                height REAL,
+                age INTEGER,
+                sex TEXT CHECK(sex IN ({SEX_VALUES})),
+                activity_level TEXT CHECK(activity_level IN ({ACTIVITY_VALUES})),
+                goal TEXT CHECK(goal IN ({GOAL_VALUES})),
+                daily_calorie_target INTEGER,
+                calorie_override INTEGER DEFAULT 0,
+                protein_target INTEGER,
+                carbs_target INTEGER,
+                fat_target INTEGER,
+                macro_override INTEGER DEFAULT 0,
+                onboarding_complete INTEGER DEFAULT 0,
+                notifications_enabled INTEGER DEFAULT 1,
+                reminder_hour INTEGER DEFAULT {DEFAULT_REMINDER_HOUR},
+                last_reminder_sent TIMESTAMP,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            )
+        """)
+
+        # Copy data from old table
+        await db.execute("""
+            INSERT INTO users_new
+            SELECT
+                telegram_id, username, first_name, weight, height, age, sex,
+                activity_level, goal, daily_calorie_target, calorie_override,
+                COALESCE(protein_target, NULL),
+                COALESCE(carbs_target, NULL),
+                COALESCE(fat_target, NULL),
+                COALESCE(macro_override, 0),
+                onboarding_complete, notifications_enabled, reminder_hour,
+                last_reminder_sent, created_at, updated_at
+            FROM users
+        """)
+
+        # Drop old table and rename new one
+        await db.execute("DROP TABLE users")
+        await db.execute("ALTER TABLE users_new RENAME TO users")
+
+        await db.execute("PRAGMA foreign_keys=ON")
+
+        logger.info("Goal CHECK constraint updated successfully")
+
+    except Exception as e:
+        logger.warning(f"Could not update goal constraint: {e}")

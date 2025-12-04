@@ -39,6 +39,10 @@ class User(BaseModel):
     goal: Optional[Goal] = None
     daily_calorie_target: Optional[int] = None
     calorie_override: bool = DB_DEFAULT_CALORIE_OVERRIDE
+    protein_target: Optional[int] = None
+    carbs_target: Optional[int] = None
+    fat_target: Optional[int] = None
+    macro_override: bool = False
     onboarding_complete: bool = DB_DEFAULT_ONBOARDING_COMPLETE
     notifications_enabled: bool = DB_DEFAULT_NOTIFICATIONS_ENABLED
     reminder_hour: int = DEFAULT_REMINDER_HOUR

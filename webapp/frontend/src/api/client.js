@@ -44,6 +44,16 @@ export const api = {
 
   // User
   getProfile: () => apiRequest('/user/profile'),
+  updateProfile: (data) => apiRequest('/user/profile', {
+    method: 'PUT',
+    body: JSON.stringify(data)
+  }),
+  resetMacros: () => apiRequest('/user/profile/reset-macros', {
+    method: 'POST'
+  }),
+
+  // Dashboard
+  getTodayDashboard: () => apiRequest('/dashboard/today'),
 
   // Calendar
   getCalendar: (year, month) => {

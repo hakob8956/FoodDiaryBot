@@ -2,10 +2,10 @@ import React from 'react'
 
 function Navigation({ activeTab, onTabChange }) {
   const tabs = [
+    { id: 'dashboard', label: 'Today', icon: '🏠' },
     { id: 'calendar', label: 'Calendar', icon: '📅' },
     { id: 'charts', label: 'Charts', icon: '📊' },
     { id: 'profile', label: 'Profile', icon: '👤' },
-    { id: 'help', label: 'Help', icon: '❓' },
   ]
 
   return (

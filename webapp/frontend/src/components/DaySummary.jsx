@@ -130,7 +130,7 @@ function DaySummary({ date, onClose, onDataChanged }) {
                 <p className="no-meals">No meals logged this day</p>
               ) : (
                 data.meals.map((meal) => (
-                  <div key={meal.id} className="meal-card">
+                  <div key={meal.id} className="meal-item">
                     <div className="meal-header">
                       <span className="meal-time">{formatTime(meal.logged_at)}</span>
                       <div className="meal-header-right">
@@ -139,25 +139,19 @@ function DaySummary({ date, onClose, onDataChanged }) {
                           className="delete-btn"
                           onClick={() => handleDelete(meal.id)}
                           disabled={deletingId === meal.id}
-                          title="Delete this entry"
+                          title="Delete"
                         >
-                          {deletingId === meal.id ? '...' : '🗑️'}
+                          {deletingId === meal.id ? '...' : '×'}
                         </button>
                       </div>
                     </div>
-                    <div className="meal-items">
-                      {meal.items.map((item, idx) => (
-                        <div key={idx} className="food-item">
-                          <span className="item-name">{item.name}</span>
-                          <span className="item-portion">{item.portion}</span>
-                          <span className="item-calories">{item.calories} kcal</span>
-                        </div>
-                      ))}
+                    <div className="meal-foods">
+                      {meal.items.map(item => item.name).join(', ')}
                     </div>
                     <div className="meal-macros">
-                      <span>P: {meal.total_protein.toFixed(1)}g</span>
-                      <span>C: {meal.total_carbs.toFixed(1)}g</span>
-                      <span>F: {meal.total_fat.toFixed(1)}g</span>
+                      <span className="meal-macro protein">P: {meal.total_protein.toFixed(1)}g</span>
+                      <span className="meal-macro carbs">C: {meal.total_carbs.toFixed(1)}g</span>
+                      <span className="meal-macro fat">F: {meal.total_fat.toFixed(1)}g</span>
                     </div>
                   </div>
                 ))

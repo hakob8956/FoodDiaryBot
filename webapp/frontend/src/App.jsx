@@ -1,18 +1,28 @@
 import React, { useState, useEffect } from 'react'
 import api from './api/client'
 import Navigation from './components/Navigation'
+import Dashboard from './components/Dashboard'
 import Calendar from './components/Calendar'
 import Charts from './components/Charts'
 import DaySummary from './components/DaySummary'
-import Help from './components/Help'
+import Settings from './components/Settings'
+
+const GOAL_LABELS = {
+  'lose': 'Lose Weight',
+  'maintain': 'Maintain Weight',
+  'gain': 'Gain Weight',
+  'gain_muscles': 'Build Muscle',
+}
 
 function App() {
-  const [activeTab, setActiveTab] = useState('calendar')
+  const [activeTab, setActiveTab] = useState('dashboard')
   const [profile, setProfile] = useState(null)
   const [selectedDay, setSelectedDay] = useState(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
   const [calendarKey, setCalendarKey] = useState(0)
+  const [showSettings, setShowSettings] = useState(false)
+  const [dashboardKey, setDashboardKey] = useState(0)
 
   useEffect(() => {
     loadProfile()
@@ -42,6 +52,12 @@ function App() {
   function handleDataChanged() {
     // Increment key to force Calendar to re-fetch data
     setCalendarKey(k => k + 1)
+  }
+
+  function handleSettingsSaved() {
+    // Reload profile and dashboard after settings change
+    loadProfile()
+    setDashboardKey(k => k + 1)
   }
 
   if (loading) {
@@ -77,6 +93,7 @@ function App() {
       </header>
 
       <main className="main">
+        {activeTab === 'dashboard' && <Dashboard key={dashboardKey} />}
         {activeTab === 'calendar' && (
           <Calendar
             key={calendarKey}
@@ -89,7 +106,12 @@ function App() {
         )}
         {activeTab === 'profile' && (
           <div className="profile-view">
-            <h2>Profile</h2>
+            <div className="profile-header">
+              <h2>Profile</h2>
+              <button className="edit-btn" onClick={() => setShowSettings(true)}>
+                Edit
+              </button>
+            </div>
             <div className="profile-card">
               <div className="profile-row">
                 <span>Name</span>
@@ -109,14 +131,40 @@ function App() {
               </div>
               <div className="profile-row">
                 <span>Goal</span>
-                <strong>{profile?.goal || 'Not set'}</strong>
+                <strong>{GOAL_LABELS[profile?.goal] || profile?.goal || 'Not set'}</strong>
               </div>
               <div className="profile-row">
                 <span>Daily Target</span>
                 <strong>{profile?.daily_calorie_target ? `${profile.daily_calorie_target} kcal` : 'Not set'}</strong>
               </div>
+            </div>
+
+            <h3 className="profile-section-title">Macro Targets</h3>
+            <div className="profile-card">
               <div className="profile-row">
-                <span>Notifications</span>
+                <span>Protein</span>
+                <strong>{profile?.protein_target ? `${profile.protein_target}g` : 'Auto'}</strong>
+              </div>
+              <div className="profile-row">
+                <span>Carbs</span>
+                <strong>{profile?.carbs_target ? `${profile.carbs_target}g` : 'Auto'}</strong>
+              </div>
+              <div className="profile-row">
+                <span>Fat</span>
+                <strong>{profile?.fat_target ? `${profile.fat_target}g` : 'Auto'}</strong>
+              </div>
+              {profile?.macro_override && (
+                <div className="profile-row custom-indicator">
+                  <span></span>
+                  <strong className="custom-badge">Custom</strong>
+                </div>
+              )}
+            </div>
+
+            <h3 className="profile-section-title">Notifications</h3>
+            <div className="profile-card">
+              <div className="profile-row">
+                <span>Enabled</span>
                 <strong>{profile?.notifications_enabled ? 'On' : 'Off'}</strong>
               </div>
               <div className="profile-row">
@@ -125,11 +173,10 @@ function App() {
               </div>
             </div>
             <p className="profile-hint">
-              Use the bot commands to update your profile
+              Use bot commands to update weight, height, and notifications
             </p>
           </div>
         )}
-        {activeTab === 'help' && <Help />}
       </main>
 
       {selectedDay && (
@@ -137,6 +184,14 @@ function App() {
           date={selectedDay}
           onClose={closeDaySummary}
           onDataChanged={handleDataChanged}
+        />
+      )}
+
+      {showSettings && (
+        <Settings
+          profile={profile}
+          onClose={() => setShowSettings(false)}
+          onSave={handleSettingsSaved}
         />
       )}
 

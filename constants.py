@@ -31,6 +31,7 @@ class Goal(str, Enum):
     LOSE = "lose"
     MAINTAIN = "maintain"
     GAIN = "gain"
+    GAIN_MUSCLES = "gain_muscles"
 
 
 class InputType(str, Enum):
@@ -38,6 +39,7 @@ class InputType(str, Enum):
     PHOTO = "photo"
     TEXT = "text"
     PHOTO_TEXT = "photo_text"
+    VOICE = "voice"
 
 
 # =============================================================================
@@ -57,6 +59,7 @@ GOAL_ADJUSTMENTS: dict[Goal, int] = {
     Goal.LOSE: -500,
     Goal.MAINTAIN: 0,
     Goal.GAIN: 300,
+    Goal.GAIN_MUSCLES: 300,
 }
 
 # Minimum safe daily calorie intake

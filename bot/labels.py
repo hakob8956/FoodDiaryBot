@@ -28,6 +28,7 @@ GOAL_LABELS: dict[Goal, str] = {
     Goal.LOSE: "Lose Weight",
     Goal.MAINTAIN: "Maintain Weight",
     Goal.GAIN: "Gain Weight",
+    Goal.GAIN_MUSCLES: "Build Muscle",
 }
 
 # Sex display labels

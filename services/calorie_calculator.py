@@ -88,6 +88,11 @@ def get_macro_targets(daily_calories: int, goal: Goal) -> MacroTargets:
         protein_pct = 0.25
         carb_pct = 0.50
         fat_pct = 0.25
+    elif goal == Goal.GAIN_MUSCLES:
+        # High protein for muscle building
+        protein_pct = 0.35
+        carb_pct = 0.40
+        fat_pct = 0.25
     else:  # Goal.MAINTAIN
         protein_pct = 0.25
         carb_pct = 0.45
