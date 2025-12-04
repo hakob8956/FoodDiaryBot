@@ -190,3 +190,44 @@ async def reset_macros_to_default(
         carbs_target=macro_targets.carbs_g,
         fat_target=macro_targets.fat_g,
     )
+
+
+class DeleteAccountResponse(BaseModel):
+    """Response for account deletion."""
+    success: bool
+    message: str
+
+
+@router.delete("/user/account", response_model=DeleteAccountResponse)
+async def delete_user_account(
+    user: TelegramUser = Depends(get_current_user)
+):
+    """
+    Delete user account and all associated data.
+    """
+    import logging
+    logger = logging.getLogger(__name__)
+
+    try:
+        # Delete all food logs for this user
+        from database.repositories.food_log_repo import food_log_repo
+        try:
+            await food_log_repo.delete_all_user_logs(user.id)
+        except Exception as e:
+            logger.warning(f"Error deleting food logs: {e}")
+            # Continue even if this fails
+
+        # Delete the user
+        try:
+            await user_repo.delete_user(user.id)
+        except Exception as e:
+            logger.warning(f"Error deleting user: {e}")
+            # Continue even if this fails
+
+        return DeleteAccountResponse(
+            success=True,
+            message="Account deleted successfully"
+        )
+    except Exception as e:
+        logger.error(f"Failed to delete account: {e}")
+        raise HTTPException(status_code=500, detail=f"Failed to delete account: {str(e)}")

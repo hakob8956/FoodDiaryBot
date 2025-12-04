@@ -183,6 +183,28 @@ class UserRepository:
             )
         return await self.update_user(telegram_id, reminder_hour=hour)
 
+    # =========================================================================
+    # ACCOUNT DELETION
+    # =========================================================================
+
+    async def delete_user(self, telegram_id: int) -> bool:
+        """Delete a user account."""
+        tid = int(telegram_id)
+
+        # Disable foreign key checks
+        await db.execute("PRAGMA foreign_keys=OFF", None)
+
+        # Delete onboarding state
+        await db.execute(f"DELETE FROM onboarding_state WHERE telegram_id = {tid}", None)
+
+        # Delete the user
+        await db.execute(f"DELETE FROM users WHERE telegram_id = {tid}", None)
+
+        # Re-enable foreign key checks
+        await db.execute("PRAGMA foreign_keys=ON", None)
+
+        return True
+
 
 # Singleton instance
 user_repo = UserRepository()

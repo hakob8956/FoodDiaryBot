@@ -397,6 +397,40 @@ body {
   text-align: center;
 }
 
+/* Danger Zone */
+.danger-section {
+  color: var(--danger);
+}
+
+.danger-card {
+  border: 1px solid var(--danger);
+  background: rgba(255, 107, 107, 0.1);
+}
+
+.danger-text {
+  font-size: 13px;
+  color: var(--text-secondary);
+  margin-bottom: 16px;
+  line-height: 1.5;
+}
+
+.delete-account-btn {
+  width: 100%;
+  padding: 12px;
+  background: var(--danger);
+  color: white;
+  border: none;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: opacity 0.2s;
+}
+
+.delete-account-btn:hover {
+  opacity: 0.9;
+}
+
 /* Modal */
 .modal-overlay {
   position: fixed;

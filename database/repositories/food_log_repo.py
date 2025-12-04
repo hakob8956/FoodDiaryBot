@@ -214,6 +214,15 @@ class FoodLogRepository:
         )
         return (row["count"] > 0) if row else False
 
+    async def delete_all_user_logs(self, telegram_id: int) -> int:
+        """Delete all food logs for a user. Returns number of deleted entries."""
+        # Use direct SQL to avoid parameter binding issues with some drivers
+        result = await db.execute(
+            f"DELETE FROM food_logs WHERE telegram_id = {int(telegram_id)}",
+            None
+        )
+        return result
+
 
 # Singleton instance
 food_log_repo = FoodLogRepository()

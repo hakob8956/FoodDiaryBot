@@ -157,13 +157,17 @@ class TursoDatabase(BaseDatabase):
 
     def _execute_sync(self, query: str, params: tuple = None):
         """Execute query synchronously on Turso."""
-        args = list(params) if params else []
-        return self._client.execute(query, args)
+        if params:
+            return self._client.execute(query, list(params))
+        else:
+            return self._client.execute(query)
 
     async def execute(self, query: str, params: tuple = None) -> int:
         """Execute a query and return affected row count."""
         result = await asyncio.to_thread(self._execute_sync, query, params)
-        return result.rows_affected if result else 0
+        if result is None:
+            return 0
+        return result.rows_affected if hasattr(result, 'rows_affected') else 0
 
     async def fetch_one(self, query: str, params: tuple = None) -> Optional[dict]:
         """Fetch a single row."""

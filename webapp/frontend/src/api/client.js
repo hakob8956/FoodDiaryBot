@@ -51,6 +51,9 @@ export const api = {
   resetMacros: () => apiRequest('/user/profile/reset-macros', {
     method: 'POST'
   }),
+  deleteAccount: () => apiRequest('/user/account', {
+    method: 'DELETE'
+  }),
 
   // Dashboard
   getTodayDashboard: () => apiRequest('/dashboard/today'),

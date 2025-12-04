@@ -172,9 +172,31 @@ function App() {
                 <strong>{profile?.reminder_hour}:00</strong>
               </div>
             </div>
-            <p className="profile-hint">
-              Use bot commands to update weight, height, and notifications
-            </p>
+
+            <h3 className="profile-section-title danger-section">Danger Zone</h3>
+            <div className="profile-card danger-card">
+              <p className="danger-text">
+                Deleting your account will permanently remove all your data including food logs and settings.
+              </p>
+              <button
+                className="delete-account-btn"
+                onClick={async () => {
+                  if (window.confirm('Are you sure you want to delete your account? This action cannot be undone.')) {
+                    if (window.confirm('This will delete ALL your data. Are you absolutely sure?')) {
+                      try {
+                        await api.deleteAccount()
+                        alert('Account deleted successfully')
+                        window.Telegram?.WebApp?.close()
+                      } catch (err) {
+                        alert('Failed to delete account: ' + err.message)
+                      }
+                    }
+                  }
+                }}
+              >
+                Delete Account
+              </button>
+            </div>
           </div>
         )}
       </main>
