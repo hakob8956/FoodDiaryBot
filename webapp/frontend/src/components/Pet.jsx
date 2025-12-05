@@ -8,6 +8,7 @@ function Pet() {
   const [error, setError] = useState(null)
   const [isRenaming, setIsRenaming] = useState(false)
   const [newName, setNewName] = useState('')
+  const [showInfo, setShowInfo] = useState(false)
 
   useEffect(() => {
     loadPet()
@@ -75,8 +76,48 @@ function Pet() {
 
   return (
     <div className="pet-container">
+      {/* Info Modal */}
+      {showInfo && (
+        <div className="info-modal-overlay" onClick={() => setShowInfo(false)}>
+          <div className="info-modal" onClick={e => e.stopPropagation()}>
+            <button className="close-btn" onClick={() => setShowInfo(false)}>×</button>
+            <h3>How Your Pet Works</h3>
+
+            <div className="info-section">
+              <h4>🎭 Moods</h4>
+              <p>Your pet's mood is based on your daily calorie progress:</p>
+              <ul>
+                <li>😢 <strong>Starving</strong> — 0% (nothing logged)</li>
+                <li>😕 <strong>Hungry</strong> — 1-49%</li>
+                <li>😊 <strong>Happy</strong> — 50-99%</li>
+                <li>🌟 <strong>Ecstatic</strong> — 100-120%</li>
+                <li>🫃 <strong>Stuffed</strong> — 121%+ (overeating)</li>
+              </ul>
+            </div>
+
+            <div className="info-section">
+              <h4>📈 Evolution</h4>
+              <p>Your pet evolves as you log more meals:</p>
+              <ul>
+                <li>🥚 <strong>Egg</strong> — 0-1 meals</li>
+                <li>🐣 <strong>Baby</strong> — 2-50 meals</li>
+                <li>🐥 <strong>Teen</strong> — 51-150 meals</li>
+                <li>🐔 <strong>Adult</strong> — 151-500 meals</li>
+                <li>👑 <strong>Elder</strong> — 501+ meals</li>
+              </ul>
+            </div>
+
+            <div className="info-section">
+              <h4>🔥 Streaks</h4>
+              <p>Log at least one meal every day to keep your streak going!</p>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Pet Display */}
       <div className="pet-display">
+        <button className="info-btn" onClick={() => setShowInfo(true)}>ℹ️</button>
         <div className="pet-image">
           <img
             src={pet.image_url}
