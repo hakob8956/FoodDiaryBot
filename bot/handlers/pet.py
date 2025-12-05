@@ -5,6 +5,7 @@ Handles /pet command to display pet status, achievements, and allow renaming.
 """
 
 import logging
+from pathlib import Path
 
 from telegram import Update
 from telegram.ext import ContextTypes, CommandHandler
@@ -13,6 +14,9 @@ from services.pet_service import pet_service
 from constants import ACHIEVEMENTS
 
 logger = logging.getLogger(__name__)
+
+# Project root for finding pet images
+PROJECT_ROOT = Path(__file__).parent.parent.parent
 
 
 async def pet_command(
@@ -70,23 +74,26 @@ async def pet_command(
         if percent > 120:
             percent_warning = " ⚠️ Overeating!"
 
-        message = f"""🐾 Meet {pet_info.pet.pet_name}!
-
-```
-{pet_info.ascii_art}
-```
+        caption = f"""🐾 Meet {pet_info.pet.pet_name}!
 
 {mood_emoji.get(pet_info.mood.value, "")} Status: {pet_service.get_mood_text(pet_info.mood)}
 📊 Today: {pet_info.calories_today}/{pet_info.calories_target} kcal ({percent}%){percent_warning}
-    [{progress_bar}]
+[{progress_bar}]
 📈 Level: {pet_service.get_level_text(pet_info.level)} ({pet_info.pet.total_meals_logged} meals)
 🔥 Streak: {streak_display}
 
 {await pet_service.get_achievements_display(telegram_id)}
 
-💡 Tip: Use /pet name <name> to rename your pet"""
+💡 Tip: /pet name <name> to rename"""
 
-        await update.message.reply_text(message, parse_mode="Markdown")
+        # Send photo with caption
+        image_path = PROJECT_ROOT / "webapp" / "frontend" / "public" / pet_info.image_url.lstrip("/")
+        if image_path.exists():
+            with open(image_path, "rb") as photo:
+                await update.message.reply_photo(photo=photo, caption=caption)
+        else:
+            # Fallback to text with ASCII if image not found
+            await update.message.reply_text(f"```\n{pet_info.ascii_art}\n```\n\n{caption}", parse_mode="Markdown")
 
     except Exception as e:
         logger.error(f"Error in pet command: {e}", exc_info=True)
