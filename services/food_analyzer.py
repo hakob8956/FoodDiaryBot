@@ -164,9 +164,6 @@ class FoodAnalyzer:
         if confidence < settings.confidence_warning_threshold:
             response += "\n(estimate has higher uncertainty)"
 
-        if entry_id:
-            response += f"\n\n(Entry #{entry_id} - use /delete {entry_id} to remove)"
-
         return response
 
 

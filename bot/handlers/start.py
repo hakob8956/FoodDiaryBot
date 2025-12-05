@@ -311,11 +311,8 @@ async def receive_pet_name(update: Update, context: ContextTypes.DEFAULT_TYPE) -
     caption = (
         f"🎉 Meet {pet_name}!\n\n"
         f"Your pet starts as an Egg and will hatch after 2 meals!\n\n"
-        f"You can now:\n"
-        f"• Send a food photo to log a meal\n"
-        f"• Send a text description of what you ate\n"
-        f"• Use /pet to check on {pet_name}\n\n"
-        f"Let's start your journey! 🚀"
+        f"Just send a food photo or text to log meals.\n"
+        f"{pet_name} will react to your eating habits! 🚀"
     )
 
     if image_path.exists():

@@ -6,9 +6,10 @@ Handles incoming food photos and text descriptions.
 
 from pathlib import Path
 
-from telegram import Update
+from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup, WebAppInfo
 from telegram.ext import ContextTypes, MessageHandler, filters
 
+from config import settings
 from database.models import User
 from services.food_analyzer import food_analyzer
 from services.pet_service import pet_service
@@ -18,6 +19,18 @@ from constants import ACHIEVEMENTS
 
 # Project root for finding pet images
 PROJECT_ROOT = Path(__file__).parent.parent.parent
+
+
+def _get_app_keyboard():
+    """Get Mini App button for after meal logging."""
+    if not settings.webapp_url:
+        return None
+    return InlineKeyboardMarkup([[
+        InlineKeyboardButton(
+            text="📱 Open App",
+            web_app=WebAppInfo(url=settings.webapp_url)
+        )
+    ]])
 
 
 def _get_mood_emoji(mood_value: str) -> str:
@@ -126,7 +139,9 @@ async def handle_food_message(
                 )
                 response += f"\n\n🏆 New Achievement: {emoji} {name}!"
 
-        await status_message.edit_text(response)
+        # Delete status message and send new one with app button
+        await status_message.delete()
+        await update.message.reply_text(response, reply_markup=_get_app_keyboard())
 
         # Send photo only on evolution or first achievement
         if pet_info.evolved or pet_info.new_achievements:
