@@ -15,7 +15,7 @@ class Messages:
     ONBOARDING_REQUIRED = (
         "Please set up your profile first with /start"
     )
-    ANALYZING_FOOD = "Analyzing your food..."
+    ANALYZING_FOOD = "Analyzing..."
     ANALYSIS_ERROR = "Sorry, I couldn't analyze this food. Please try again."
     UNKNOWN_ERROR = "An error occurred. Please try again later."
 
@@ -156,19 +156,25 @@ class Messages:
     # =========================================================================
     NOTIFICATIONS_STATUS = (
         "Notification Settings:\n\n"
-        "Status: {status}\n"
+        "Daily Reminders: {status}\n"
         "Reminder time: {hour}:00\n\n"
+        "Weekly Summary: {weekly_status}\n"
+        "(Sent every Monday at 9:00 AM)\n\n"
         "Commands:\n"
-        "/notifications on - Enable reminders\n"
-        "/notifications off - Disable reminders\n"
-        "/notifications time <0-23> - Set reminder hour"
+        "/notifications on - Enable daily reminders\n"
+        "/notifications off - Disable daily reminders\n"
+        "/notifications time <0-23> - Set reminder hour\n"
+        "/notifications weeklysummary on - Enable weekly summaries\n"
+        "/notifications weeklysummary off - Disable weekly summaries"
     )
-    NOTIFICATIONS_ENABLED = "Reminders enabled"
-    NOTIFICATIONS_DISABLED = "Reminders disabled"
+    NOTIFICATIONS_ENABLED = "Enabled"
+    NOTIFICATIONS_DISABLED = "Disabled"
     NOTIFICATIONS_ON = "Daily reminders enabled! You'll be reminded at {hour}:00."
     NOTIFICATIONS_OFF = "Daily reminders disabled."
     NOTIFICATIONS_TIME_SET = "Reminder time set to {hour}:00."
     NOTIFICATIONS_TIME_INVALID = "Please provide an hour between 0 and 23 (e.g., /notifications time 20)"
+    WEEKLY_SUMMARY_ON = "Weekly summaries enabled! You'll receive a summary every Monday at 9:00 AM."
+    WEEKLY_SUMMARY_OFF = "Weekly summaries disabled."
 
     # =========================================================================
     # RAWLOG

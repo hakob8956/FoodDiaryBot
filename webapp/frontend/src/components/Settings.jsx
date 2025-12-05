@@ -29,6 +29,7 @@ function Settings({ profile, onClose, onSave }) {
   const [fat, setFat] = useState(0)
   const [notificationsEnabled, setNotificationsEnabled] = useState(profile?.notifications_enabled ?? true)
   const [reminderHour, setReminderHour] = useState(profile?.reminder_hour ?? 20)
+  const [weeklySummaryEnabled, setWeeklySummaryEnabled] = useState(profile?.weekly_summary_enabled ?? true)
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState(null)
 
@@ -126,6 +127,7 @@ function Settings({ profile, onClose, onSave }) {
         fat_target: fat,
         notifications_enabled: notificationsEnabled,
         reminder_hour: reminderHour,
+        weekly_summary_enabled: weeklySummaryEnabled,
       }
 
       // Add profile fields if they have values
@@ -429,6 +431,21 @@ function Settings({ profile, onClose, onSave }) {
                   ))}
                 </select>
               </div>
+            )}
+
+            <div className="toggle-row">
+              <span>Weekly Summary</span>
+              <label className="toggle-switch">
+                <input
+                  type="checkbox"
+                  checked={weeklySummaryEnabled}
+                  onChange={e => setWeeklySummaryEnabled(e.target.checked)}
+                />
+                <span className="toggle-slider"></span>
+              </label>
+            </div>
+            {weeklySummaryEnabled && (
+              <div className="notification-hint">Sent every Monday at 9:00 AM</div>
             )}
           </div>
         </div>

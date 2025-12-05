@@ -55,6 +55,10 @@ class FoodAnalyzer:
         # Extract totals
         totals = analysis.get("totals", {})
 
+        # Validate analysis - 0 calories usually means analysis failed
+        if totals.get("calories", 0) == 0:
+            raise ValueError("Could not analyze food - no nutritional data detected")
+
         # Create food log entry
         food_log = await food_log_repo.create_log(
             telegram_id=telegram_id,

@@ -23,9 +23,10 @@ from bot.handlers.notifications import get_notifications_handler
 from bot.handlers.dashboard import get_dashboard_handler
 from bot.handlers.webapp import get_webapp_data_handler
 from bot.handlers.debug import get_debug_handlers
-from bot.handlers.admin import get_admin_handler
+from bot.handlers.admin import get_admin_handlers
 from bot.messages import Messages
 from services.reminder_service import check_and_send_reminders
+from services.weekly_summary_service import send_weekly_summaries
 
 
 # Configure logging
@@ -69,6 +70,15 @@ async def post_init(application: Application) -> None:
             f"Daily reminder job scheduled "
             f"(every {settings.reminder_interval_seconds}s)"
         )
+
+        # Schedule weekly summary job (checks every hour, sends on Monday 9 AM)
+        application.job_queue.run_repeating(
+            send_weekly_summaries,
+            interval=3600,  # Check every hour
+            first=60,       # Wait 60 seconds before first check
+            name="weekly_summary_check"
+        )
+        logger.info("Weekly summary job scheduled (checks every hour)")
 
 
 def run_api_server() -> None:
@@ -125,7 +135,8 @@ def main() -> None:
         application.add_handler(handler)
 
     # Admin handlers
-    application.add_handler(get_admin_handler())
+    for handler in get_admin_handlers():
+        application.add_handler(handler)
 
     # Food logging handler (photos and text messages)
     # This should be last to not interfere with conversation handlers

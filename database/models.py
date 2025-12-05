@@ -19,6 +19,7 @@ from constants import (
     DB_DEFAULT_NOTIFICATIONS_ENABLED,
     DB_DEFAULT_CALORIE_OVERRIDE,
     DB_DEFAULT_ONBOARDING_COMPLETE,
+    DB_DEFAULT_WEEKLY_SUMMARY_ENABLED,
 )
 
 
@@ -47,6 +48,8 @@ class User(BaseModel):
     notifications_enabled: bool = DB_DEFAULT_NOTIFICATIONS_ENABLED
     reminder_hour: int = DEFAULT_REMINDER_HOUR
     last_reminder_sent: Optional[datetime] = None
+    weekly_summary_enabled: bool = DB_DEFAULT_WEEKLY_SUMMARY_ENABLED
+    last_weekly_summary_sent: Optional[datetime] = None
     created_at: Optional[datetime] = None
     updated_at: Optional[datetime] = None
 

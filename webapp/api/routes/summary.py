@@ -61,6 +61,7 @@ class UserProfile(BaseModel):
     macro_override: bool
     notifications_enabled: bool
     reminder_hour: int
+    weekly_summary_enabled: bool
 
 
 class SummaryResponse(BaseModel):
@@ -148,7 +149,8 @@ async def get_user_profile(
             fat_target=None,
             macro_override=False,
             notifications_enabled=True,
-            reminder_hour=20
+            reminder_hour=20,
+            weekly_summary_enabled=True
         )
 
     return UserProfile(
@@ -164,5 +166,6 @@ async def get_user_profile(
         fat_target=profile.fat_target,
         macro_override=profile.macro_override,
         notifications_enabled=profile.notifications_enabled,
-        reminder_hour=profile.reminder_hour
+        reminder_hour=profile.reminder_hour,
+        weekly_summary_enabled=profile.weekly_summary_enabled
     )

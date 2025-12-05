@@ -29,6 +29,7 @@ class UpdateProfileRequest(BaseModel):
     # Notifications
     notifications_enabled: Optional[bool] = None
     reminder_hour: Optional[int] = None
+    weekly_summary_enabled: Optional[bool] = None
 
 
 class ProfileResponse(BaseModel):
@@ -49,6 +50,7 @@ class ProfileResponse(BaseModel):
     macro_override: bool
     notifications_enabled: bool
     reminder_hour: int
+    weekly_summary_enabled: bool
 
 
 class ResetResponse(BaseModel):
@@ -127,6 +129,9 @@ async def update_user_profile(
         if 0 <= request.reminder_hour <= 23:
             updates["reminder_hour"] = request.reminder_hour
 
+    if request.weekly_summary_enabled is not None:
+        updates["weekly_summary_enabled"] = 1 if request.weekly_summary_enabled else 0
+
     if not updates:
         raise HTTPException(status_code=400, detail="No fields to update")
 
@@ -152,6 +157,7 @@ async def update_user_profile(
         macro_override=updated_user.macro_override,
         notifications_enabled=updated_user.notifications_enabled,
         reminder_hour=updated_user.reminder_hour,
+        weekly_summary_enabled=updated_user.weekly_summary_enabled,
     )
 
 

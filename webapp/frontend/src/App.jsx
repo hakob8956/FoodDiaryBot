@@ -164,12 +164,18 @@ function App() {
             <h3 className="profile-section-title">Notifications</h3>
             <div className="profile-card">
               <div className="profile-row">
-                <span>Enabled</span>
+                <span>Daily Reminder</span>
                 <strong>{profile?.notifications_enabled ? 'On' : 'Off'}</strong>
               </div>
+              {profile?.notifications_enabled && (
+                <div className="profile-row">
+                  <span>Reminder Time</span>
+                  <strong>{profile?.reminder_hour}:00</strong>
+                </div>
+              )}
               <div className="profile-row">
-                <span>Reminder Time</span>
-                <strong>{profile?.reminder_hour}:00</strong>
+                <span>Weekly Summary</span>
+                <strong>{profile?.weekly_summary_enabled ? 'On' : 'Off'}</strong>
               </div>
             </div>
 

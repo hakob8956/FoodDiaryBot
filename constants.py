@@ -150,6 +150,17 @@ TELEGRAM_SAFE_MESSAGE_CHARS = 4000
 
 
 # =============================================================================
+# WEEKLY SUMMARY
+# =============================================================================
+
+# Day of week for weekly summary (0 = Monday)
+WEEKLY_SUMMARY_DAY = 0
+
+# Hour to send weekly summary (9 AM)
+WEEKLY_SUMMARY_HOUR = 9
+
+
+# =============================================================================
 # DATABASE DEFAULTS
 # =============================================================================
 
@@ -157,3 +168,4 @@ TELEGRAM_SAFE_MESSAGE_CHARS = 4000
 DB_DEFAULT_NOTIFICATIONS_ENABLED = True
 DB_DEFAULT_CALORIE_OVERRIDE = False
 DB_DEFAULT_ONBOARDING_COMPLETE = False
+DB_DEFAULT_WEEKLY_SUMMARY_ENABLED = True

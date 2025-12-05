@@ -1278,6 +1278,12 @@ body {
   font-size: 14px;
 }
 
+.notification-hint {
+  font-size: 12px;
+  color: var(--text-secondary);
+  margin-top: -8px;
+}
+
 /* Toggle Switch */
 .toggle-switch {
   position: relative;

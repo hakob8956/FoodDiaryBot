@@ -106,6 +106,7 @@ async def run_migrations() -> None:
     await _migrate_add_notification_columns()
     await _migrate_add_macro_columns()
     await _migrate_update_goal_constraint()
+    await _migrate_add_weekly_summary_columns()
 
     logger.info("Database migrations completed successfully.")
 
@@ -245,3 +246,16 @@ async def _migrate_update_goal_constraint() -> None:
 
     except Exception as e:
         logger.warning(f"Could not update goal constraint: {e}")
+
+
+async def _migrate_add_weekly_summary_columns() -> None:
+    """Add weekly summary columns to existing users table if missing."""
+    columns_to_add = [
+        ("weekly_summary_enabled", "INTEGER DEFAULT 1"),
+        ("last_weekly_summary_sent", "TIMESTAMP"),
+    ]
+
+    if isinstance(db, TursoDatabase):
+        await _migrate_columns_turso(columns_to_add)
+    else:
+        await _migrate_columns_sqlite(columns_to_add)

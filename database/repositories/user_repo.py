@@ -184,6 +184,50 @@ class UserRepository:
         return await self.update_user(telegram_id, reminder_hour=hour)
 
     # =========================================================================
+    # WEEKLY SUMMARY METHODS
+    # =========================================================================
+
+    async def get_users_for_weekly_summary(self) -> list[User]:
+        """
+        Get users eligible for weekly summary notification.
+
+        Returns users who:
+        - Have completed onboarding
+        - Have weekly summary enabled
+        - Haven't received a weekly summary this week
+        """
+        rows = await db.fetch_all(
+            """
+            SELECT * FROM users
+            WHERE onboarding_complete = 1
+            AND weekly_summary_enabled = 1
+            AND (
+                last_weekly_summary_sent IS NULL
+                OR date(last_weekly_summary_sent) < date('now', 'weekday 0', '-7 days')
+            )
+            """
+        )
+        return [User(**row) for row in rows]
+
+    async def update_last_weekly_summary(self, telegram_id: int) -> None:
+        """Update the last_weekly_summary_sent timestamp."""
+        await db.execute(
+            "UPDATE users SET last_weekly_summary_sent = CURRENT_TIMESTAMP WHERE telegram_id = ?",
+            (telegram_id,)
+        )
+
+    async def set_weekly_summary_enabled(
+        self,
+        telegram_id: int,
+        enabled: bool
+    ) -> Optional[User]:
+        """Enable or disable weekly summaries for a user."""
+        return await self.update_user(
+            telegram_id,
+            weekly_summary_enabled=1 if enabled else 0
+        )
+
+    # =========================================================================
     # ADMIN QUERIES
     # =========================================================================
 
