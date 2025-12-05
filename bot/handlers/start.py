@@ -31,7 +31,7 @@ from bot.labels import get_activity_label, get_goal_label, get_sex_label
 
 
 # Conversation states
-WEIGHT, HEIGHT, AGE, SEX, ACTIVITY, GOAL, CONFIRM = range(7)
+WEIGHT, HEIGHT, AGE, SEX, ACTIVITY, GOAL, CONFIRM, PET_NAME = range(8)
 
 
 def get_webapp_keyboard():
@@ -268,13 +268,63 @@ async def confirm_profile(update: Update, context: ContextTypes.DEFAULT_TYPE) ->
         goal=data["goal"]
     )
     await user_repo.set_onboarding_complete(telegram_id, data["daily_target"])
-    await user_repo.clear_onboarding_state(telegram_id)
 
     await query.edit_message_text(
-        Messages.ONBOARDING_COMPLETE.format(daily_target=data["daily_target"])
+        "Profile saved! Your daily target is {daily_target} kcal.\n\n"
+        "🐾 One more thing! Let's name your pet companion.\n\n"
+        "Your pet will react to your eating habits and grow as you log meals!\n\n"
+        "What would you like to name your pet? (or send 'skip' to use default name 'Nibbles')".format(
+            daily_target=data["daily_target"]
+        )
+    )
+    return PET_NAME
+
+
+async def receive_pet_name(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
+    """Process pet name input."""
+    from database.repositories.pet_repo import pet_repo
+    from pathlib import Path
+
+    telegram_id = update.effective_user.id
+    text = update.message.text.strip()
+
+    # Get or create pet
+    pet = await pet_repo.get_or_create_pet(telegram_id)
+
+    # Set pet name
+    if text.lower() != "skip" and len(text) <= 20 and len(text) >= 1:
+        await pet_repo.rename_pet(telegram_id, text)
+        pet_name = text
+    else:
+        pet_name = pet.pet_name  # Default "Nibbles"
+
+    # Clear onboarding state
+    await user_repo.clear_onboarding_state(telegram_id)
+
+    # Send pet photo with welcome message
+    from services.pet_service import pet_service
+    pet_info = await pet_service.get_pet_info(telegram_id)
+
+    PROJECT_ROOT = Path(__file__).parent.parent.parent
+    image_path = PROJECT_ROOT / "webapp" / "frontend" / "public" / pet_info.image_url.lstrip("/")
+
+    caption = (
+        f"🎉 Meet {pet_name}!\n\n"
+        f"Your pet starts as an Egg and will hatch after 2 meals!\n\n"
+        f"You can now:\n"
+        f"• Send a food photo to log a meal\n"
+        f"• Send a text description of what you ate\n"
+        f"• Use /pet to check on {pet_name}\n\n"
+        f"Let's start your journey! 🚀"
     )
 
-    # Send webapp button in separate message (WebApp buttons need a new message)
+    if image_path.exists():
+        with open(image_path, "rb") as photo:
+            await update.message.reply_photo(photo=photo, caption=caption)
+    else:
+        await update.message.reply_text(caption)
+
+    # Send webapp button
     webapp_keyboard = get_webapp_keyboard()
     if webapp_keyboard:
         await context.bot.send_message(
@@ -304,6 +354,7 @@ def get_start_conversation_handler() -> ConversationHandler:
             ACTIVITY: [CallbackQueryHandler(receive_activity, pattern="^activity:")],
             GOAL: [CallbackQueryHandler(receive_goal, pattern="^goal:")],
             CONFIRM: [CallbackQueryHandler(confirm_profile, pattern="^confirm:")],
+            PET_NAME: [MessageHandler(filters.TEXT & ~filters.COMMAND, receive_pet_name)],
         },
         fallbacks=[CommandHandler("cancel", cancel)],
         per_message=False
