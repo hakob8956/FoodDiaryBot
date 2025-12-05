@@ -143,6 +143,52 @@ class OpenAIService:
         """Encode image bytes to base64 string."""
         return base64.b64encode(image_bytes).decode("utf-8")
 
+    async def generate_reminder_message(self, food_list: list[str]) -> str:
+        """
+        Generate a personalized reminder message based on user's food history.
+
+        Args:
+            food_list: List of food item names from last 7 days
+
+        Returns:
+            AI-generated reminder message
+        """
+        food_log_text = ", ".join(food_list) if food_list else "Nothing logged"
+
+        system_prompt = """You are a dramatic, emotional, hungry little food-tracking creature.
+Your job is to send the user a short reminder message based on the food they logged in the last 7 days.
+
+Tone:
+- emotional, cute, dramatic, needy
+- like a pet begging its owner gently
+- slightly funny but still warm and motivating
+- message should feel personal based on the foods they actually logged
+
+Rules:
+- Use only the foods that appear in the last 7 days
+- If the user barely logged anything, be extra dramatic and sad
+- If the user logged many things, be excited and proud
+- Keep message SHORT (1–3 sentences)
+- Never guilt-trip aggressively — only playful sadness
+- End with a gentle nudge to log today's food"""
+
+        user_prompt = f"""Here is the user's food log from the last 7 days:
+{food_log_text}
+
+Generate ONE message."""
+
+        response = await self.client.chat.completions.create(
+            model=self.model,
+            messages=[
+                {"role": "system", "content": system_prompt},
+                {"role": "user", "content": user_prompt}
+            ],
+            max_tokens=150,
+            temperature=0.9
+        )
+
+        return response.choices[0].message.content.strip()
+
 
 # Singleton instance
 openai_service = OpenAIService()

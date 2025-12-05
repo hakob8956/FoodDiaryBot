@@ -223,6 +223,32 @@ class FoodLogRepository:
         )
         return result
 
+    async def get_food_names_last_7_days(self, telegram_id: int) -> list[str]:
+        """Get list of food item names logged in last 7 days."""
+        rows = await db.fetch_all(
+            """
+            SELECT analysis_json FROM food_logs
+            WHERE telegram_id = ?
+            AND logged_at >= date('now', '-7 days')
+            ORDER BY logged_at DESC
+            """,
+            (telegram_id,)
+        )
+
+        food_names = []
+        for row in rows:
+            try:
+                analysis = json.loads(row.get("analysis_json", "{}"))
+                items = analysis.get("items", [])
+                for item in items:
+                    name = item.get("name")
+                    if name:
+                        food_names.append(name)
+            except (json.JSONDecodeError, AttributeError):
+                continue
+
+        return food_names
+
 
 # Singleton instance
 food_log_repo = FoodLogRepository()

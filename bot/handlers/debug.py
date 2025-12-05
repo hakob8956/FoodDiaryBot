@@ -4,7 +4,6 @@ from telegram import Update
 from telegram.ext import ContextTypes, CommandHandler
 
 from services.feature_flags import feature_flags
-from services.reminder_service import check_and_send_reminders
 from database.repositories.user_repo import user_repo
 from database.repositories.food_log_repo import food_log_repo
 
@@ -44,23 +43,8 @@ Today's Status:
     await update.message.reply_text(debug_info)
 
 
-async def test_reminder_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    """
-    Force trigger reminder check (for testing).
-    Usage: /testreminder
-    """
-    await update.message.reply_text("Triggering reminder check...")
-
-    try:
-        await check_and_send_reminders(context)
-        await update.message.reply_text("Reminder check complete. Check logs for details.")
-    except Exception as e:
-        await update.message.reply_text(f"Error: {e}")
-
-
 def get_debug_handlers() -> list[CommandHandler]:
     """Return debug command handlers."""
     return [
         CommandHandler("debug", debug_command),
-        CommandHandler("testreminder", test_reminder_command),
     ]

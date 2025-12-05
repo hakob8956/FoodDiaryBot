@@ -2,6 +2,7 @@
 Reminder notification service.
 
 Handles scheduled reminder notifications for users who haven't logged food.
+Uses AI-generated personalized messages based on user's food history.
 """
 
 import logging
@@ -9,16 +10,33 @@ from datetime import datetime
 from telegram.ext import ContextTypes
 
 from services.feature_flags import feature_flags
+from services.openai_service import openai_service
 from database.repositories.user_repo import user_repo
 from database.repositories.food_log_repo import food_log_repo
 
 logger = logging.getLogger(__name__)
 
-REMINDER_MESSAGE = """Hey! You haven't logged any food today.
+FALLBACK_REMINDER_MESSAGE = """Hey! You haven't logged any food today.
 
 Send me a photo of your meal or a text description to track your nutrition!
 
 (Use /notifications off to disable these reminders)"""
+
+
+async def generate_reminder_for_user(telegram_id: int) -> str:
+    """
+    Generate a personalized AI reminder message for a user.
+
+    Falls back to static message if AI generation fails.
+    """
+    try:
+        food_list = await food_log_repo.get_food_names_last_7_days(telegram_id)
+        message = await openai_service.generate_reminder_message(food_list)
+        # Append the disable hint
+        return f"{message}\n\n(Use /notifications off to disable these reminders)"
+    except Exception as e:
+        logger.warning(f"Failed to generate AI reminder for {telegram_id}: {e}")
+        return FALLBACK_REMINDER_MESSAGE
 
 
 async def check_and_send_reminders(context: ContextTypes.DEFAULT_TYPE) -> None:
@@ -52,9 +70,12 @@ async def check_and_send_reminders(context: ContextTypes.DEFAULT_TYPE) -> None:
                 continue
 
             try:
+                # Generate personalized AI message
+                message = await generate_reminder_for_user(user.telegram_id)
+
                 await context.bot.send_message(
                     chat_id=user.telegram_id,
-                    text=REMINDER_MESSAGE
+                    text=message
                 )
                 await user_repo.update_last_reminder(user.telegram_id)
                 sent_count += 1

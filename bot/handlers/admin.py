@@ -13,6 +13,7 @@ from telegram.ext import ContextTypes, CommandHandler
 from config import settings
 from database.repositories.user_repo import user_repo
 from services.summary_generator import summary_generator
+from services.reminder_service import generate_reminder_for_user
 
 logger = logging.getLogger(__name__)
 
@@ -104,6 +105,10 @@ async def adminhelp_command(
   Test weekly summary generation
   Sends your last 7 days summary
 
+/testreminder
+  Test AI-generated reminder message
+  Based on your last 7 days food log
+
 /adminhelp
   Show this help message"""
 
@@ -192,6 +197,31 @@ async def testweekly_command(
         await update.message.reply_text(f"Error: {e}")
 
 
+async def testreminder_command(
+    update: Update,
+    context: ContextTypes.DEFAULT_TYPE
+) -> None:
+    """
+    Handle /testreminder command - test AI-generated reminder message.
+
+    Usage: /testreminder
+    Only works for admin user.
+    """
+    # Check if user is admin
+    if update.effective_user.id != settings.admin_user_id:
+        return
+
+    await update.message.reply_text("Generating AI reminder...")
+
+    try:
+        message = await generate_reminder_for_user(update.effective_user.id)
+        await update.message.reply_text(f"🧪 Test Reminder:\n\n{message}")
+
+    except Exception as e:
+        logger.error(f"Error generating test reminder: {e}")
+        await update.message.reply_text(f"Error: {e}")
+
+
 def get_admin_handlers() -> list[CommandHandler]:
     """Return all admin command handlers."""
     return [
@@ -199,6 +229,7 @@ def get_admin_handlers() -> list[CommandHandler]:
         CommandHandler("stats", stats_command),
         CommandHandler("broadcast", broadcast_command),
         CommandHandler("testweekly", testweekly_command),
+        CommandHandler("testreminder", testreminder_command),
     ]
 
 
