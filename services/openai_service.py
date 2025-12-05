@@ -160,7 +160,7 @@ class OpenAIService:
 Your job is to send the user a short reminder message based on the food they logged in the last 7 days.
 
 Tone:
-- emotional, cute, dramatic, needy
+- emotional, cute, needy, very friendly
 - like a pet begging its owner gently
 - slightly funny but still warm and motivating
 - message should feel personal based on the foods they actually logged
