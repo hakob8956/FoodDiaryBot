@@ -236,6 +236,50 @@ class UserRepository:
         rows = await db.fetch_all("SELECT * FROM users")
         return [User(**row) for row in rows]
 
+    async def get_stats(self) -> dict:
+        """Get admin statistics."""
+        # Total users
+        total_users = await db.fetch_one(
+            "SELECT COUNT(*) as count FROM users"
+        )
+
+        # Active users (logged food in last 7 days)
+        active_users = await db.fetch_one(
+            """
+            SELECT COUNT(DISTINCT telegram_id) as count FROM food_logs
+            WHERE logged_at >= date('now', '-7 days')
+            """
+        )
+
+        # Total food logs
+        total_logs = await db.fetch_one(
+            "SELECT COUNT(*) as count FROM food_logs"
+        )
+
+        # Logs today
+        logs_today = await db.fetch_one(
+            """
+            SELECT COUNT(*) as count FROM food_logs
+            WHERE date(logged_at) = date('now')
+            """
+        )
+
+        # Logs this week
+        logs_week = await db.fetch_one(
+            """
+            SELECT COUNT(*) as count FROM food_logs
+            WHERE logged_at >= date('now', '-7 days')
+            """
+        )
+
+        return {
+            "total_users": total_users["count"] if total_users else 0,
+            "active_users_7d": active_users["count"] if active_users else 0,
+            "total_logs": total_logs["count"] if total_logs else 0,
+            "logs_today": logs_today["count"] if logs_today else 0,
+            "logs_week": logs_week["count"] if logs_week else 0,
+        }
+
     # =========================================================================
     # ACCOUNT DELETION
     # =========================================================================

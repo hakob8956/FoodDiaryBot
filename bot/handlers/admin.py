@@ -92,6 +92,10 @@ async def adminhelp_command(
 
     help_text = """🔐 Admin Commands
 
+/stats
+  Show bot usage statistics
+  (users, food logs, activity)
+
 /broadcast <message>
   Send a message to all users
   Supports multi-line messages
@@ -104,6 +108,41 @@ async def adminhelp_command(
   Show this help message"""
 
     await update.message.reply_text(help_text)
+
+
+async def stats_command(
+    update: Update,
+    context: ContextTypes.DEFAULT_TYPE
+) -> None:
+    """
+    Handle /stats command - show usage statistics.
+
+    Usage: /stats
+    Only works for admin user.
+    """
+    # Check if user is admin
+    if update.effective_user.id != settings.admin_user_id:
+        return
+
+    try:
+        stats = await user_repo.get_stats()
+
+        message = f"""📊 Bot Statistics
+
+👥 Users
+  Total: {stats['total_users']}
+  Active (7d): {stats['active_users_7d']}
+
+📝 Food Logs
+  Total: {stats['total_logs']}
+  Today: {stats['logs_today']}
+  This week: {stats['logs_week']}"""
+
+        await update.message.reply_text(message)
+
+    except Exception as e:
+        logger.error(f"Error getting stats: {e}")
+        await update.message.reply_text(f"Error: {e}")
 
 
 async def testweekly_command(
@@ -157,6 +196,7 @@ def get_admin_handlers() -> list[CommandHandler]:
     """Return all admin command handlers."""
     return [
         CommandHandler("adminhelp", adminhelp_command),
+        CommandHandler("stats", stats_command),
         CommandHandler("broadcast", broadcast_command),
         CommandHandler("testweekly", testweekly_command),
     ]
