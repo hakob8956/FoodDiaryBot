@@ -176,3 +176,26 @@ class MacroTargets:
             'carbs_g': self.carbs_g,
             'fat_g': self.fat_g,
         }
+
+
+# =============================================================================
+# PET SYSTEM MODELS
+# =============================================================================
+
+class PetStatus(BaseModel):
+    """Pet status model for Tamagotchi feature."""
+    telegram_id: int
+    pet_name: str = "Nibbles"
+    total_meals_logged: int = 0
+    current_streak: int = 0
+    best_streak: int = 0
+    last_fed_date: Optional[str] = None  # DATE as string
+    created_at: Optional[datetime] = None
+
+
+class Achievement(BaseModel):
+    """Achievement/badge model."""
+    id: Optional[int] = None
+    telegram_id: int
+    achievement_id: str
+    unlocked_at: Optional[datetime] = None

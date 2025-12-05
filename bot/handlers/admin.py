@@ -12,8 +12,10 @@ from telegram.ext import ContextTypes, CommandHandler
 
 from config import settings
 from database.repositories.user_repo import user_repo
+from database.repositories.pet_repo import pet_repo
 from services.summary_generator import summary_generator
 from services.reminder_service import generate_reminder_for_user
+from constants import PetLevel, PET_LEVEL_THRESHOLDS
 
 logger = logging.getLogger(__name__)
 
@@ -108,6 +110,11 @@ async def adminhelp_command(
 /testreminder
   Test AI-generated reminder message
   Based on your last 7 days food log
+
+/setpet <level> [mood]
+  Change pet level and mood for testing
+  Levels: egg, baby, teen, adult, elder
+  Moods: starving, hungry, happy, ecstatic, stuffed
 
 /adminhelp
   Show this help message"""
@@ -222,6 +229,92 @@ async def testreminder_command(
         await update.message.reply_text(f"Error: {e}")
 
 
+async def setpet_command(
+    update: Update,
+    context: ContextTypes.DEFAULT_TYPE
+) -> None:
+    """
+    Handle /setpet command - change pet level and mood for testing.
+
+    Usage: /setpet <level> [mood]
+    Levels: egg, baby, teen, adult, elder
+    Moods: starving, hungry, happy, ecstatic, stuffed
+    Only works for admin user.
+    """
+    # Check if user is admin
+    if update.effective_user.id != settings.admin_user_id:
+        return
+
+    valid_levels = ["egg", "baby", "teen", "adult", "elder"]
+    valid_moods = ["starving", "hungry", "happy", "ecstatic", "stuffed"]
+
+    # Mood to calorie percentage mapping
+    mood_calories = {
+        "starving": 0,      # 0%
+        "hungry": 25,       # 25% (1-49%)
+        "happy": 75,        # 75% (50-99%)
+        "ecstatic": 100,    # 100% (100-120%)
+        "stuffed": 150,     # 150% (121%+)
+    }
+
+    if not context.args:
+        await update.message.reply_text(
+            "Usage: /setpet <level> [mood]\n\n"
+            "Levels:\n"
+            "  egg - 0 meals\n"
+            "  baby - 2 meals\n"
+            "  teen - 51 meals\n"
+            "  adult - 151 meals\n"
+            "  elder - 501 meals\n\n"
+            "Moods (optional):\n"
+            "  starving - 0% calories\n"
+            "  hungry - 25% calories\n"
+            "  happy - 75% calories\n"
+            "  ecstatic - 100% calories\n"
+            "  stuffed - 150% calories"
+        )
+        return
+
+    level_name = context.args[0].lower()
+    if level_name not in valid_levels:
+        await update.message.reply_text(f"Invalid level. Choose: {', '.join(valid_levels)}")
+        return
+
+    level = PetLevel(level_name)
+    meals = PET_LEVEL_THRESHOLDS[level]
+
+    # Check for mood argument
+    mood_name = None
+    calories_set = None
+    if len(context.args) >= 2:
+        mood_name = context.args[1].lower()
+        if mood_name not in valid_moods:
+            await update.message.reply_text(f"Invalid mood. Choose: {', '.join(valid_moods)}")
+            return
+
+        # Calculate calories to set based on user's target
+        from database.repositories.user_repo import user_repo
+        from database.repositories.food_log_repo import food_log_repo
+        from constants import DEFAULT_CALORIE_TARGET
+
+        user = await user_repo.get_user(update.effective_user.id)
+        target = user.daily_calorie_target if user and user.daily_calorie_target else DEFAULT_CALORIE_TARGET
+        calories_set = int(target * mood_calories[mood_name] / 100)
+
+        # Set today's calories by adjusting food logs
+        await food_log_repo.set_daily_calories(update.effective_user.id, calories_set)
+
+    try:
+        await pet_repo.set_meals(update.effective_user.id, meals)
+        response = f"✅ Pet set to {level_name.title()}! (meals: {meals})"
+        if mood_name:
+            response += f"\n✅ Mood set to {mood_name.title()}! (calories: {calories_set})"
+        await update.message.reply_text(response)
+    except Exception as e:
+        logger.error(f"Error setting pet: {e}")
+        await update.message.reply_text(f"Error: {e}")
+
+
 def get_admin_handlers() -> list[CommandHandler]:
     """Return all admin command handlers."""
     return [
@@ -230,6 +323,7 @@ def get_admin_handlers() -> list[CommandHandler]:
         CommandHandler("broadcast", broadcast_command),
         CommandHandler("testweekly", testweekly_command),
         CommandHandler("testreminder", testreminder_command),
+        CommandHandler("setpet", setpet_command),
     ]
 
 

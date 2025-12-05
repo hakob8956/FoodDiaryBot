@@ -24,6 +24,7 @@ from bot.handlers.dashboard import get_dashboard_handler
 from bot.handlers.webapp import get_webapp_data_handler
 from bot.handlers.debug import get_debug_handlers
 from bot.handlers.admin import get_admin_handlers
+from bot.handlers.pet import get_pet_handler
 from bot.messages import Messages
 from services.reminder_service import check_and_send_reminders
 from services.weekly_summary_service import send_weekly_summaries
@@ -129,6 +130,7 @@ def main() -> None:
     application.add_handler(get_notifications_handler())
     application.add_handler(get_dashboard_handler())
     application.add_handler(get_webapp_data_handler())
+    application.add_handler(get_pet_handler())
 
     # Debug handlers (remove in production)
     for handler in get_debug_handlers():

@@ -77,6 +77,13 @@ export const api = {
 
   // Summary
   getSummary: (days = 7) => apiRequest(`/summary?days=${days}`),
+
+  // Pet
+  getPet: () => apiRequest('/pet'),
+  renamePet: (name) => apiRequest('/pet/rename', {
+    method: 'POST',
+    body: JSON.stringify({ name })
+  }),
 }
 
 export default api

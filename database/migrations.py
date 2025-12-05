@@ -83,6 +83,30 @@ CREATE INDEX IF NOT EXISTS idx_food_logs_user_date
 ON food_logs(telegram_id, logged_at)
 """
 
+CREATE_PET_STATUS_TABLE = """
+CREATE TABLE IF NOT EXISTS pet_status (
+    telegram_id INTEGER PRIMARY KEY,
+    pet_name TEXT DEFAULT 'Nibbles',
+    total_meals_logged INTEGER DEFAULT 0,
+    current_streak INTEGER DEFAULT 0,
+    best_streak INTEGER DEFAULT 0,
+    last_fed_date DATE,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (telegram_id) REFERENCES users(telegram_id)
+)
+"""
+
+CREATE_ACHIEVEMENTS_TABLE = """
+CREATE TABLE IF NOT EXISTS achievements (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    telegram_id INTEGER NOT NULL,
+    achievement_id TEXT NOT NULL,
+    unlocked_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    UNIQUE(telegram_id, achievement_id),
+    FOREIGN KEY (telegram_id) REFERENCES users(telegram_id)
+)
+"""
+
 
 # =============================================================================
 # MIGRATION FUNCTIONS
@@ -98,6 +122,8 @@ async def run_migrations() -> None:
         CREATE_ONBOARDING_STATE_TABLE,
         CREATE_FOOD_LOGS_TABLE,
         CREATE_FOOD_LOGS_INDEX,
+        CREATE_PET_STATUS_TABLE,
+        CREATE_ACHIEVEMENTS_TABLE,
     ]
 
     await db.execute_many(statements)

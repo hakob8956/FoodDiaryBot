@@ -169,3 +169,70 @@ DB_DEFAULT_NOTIFICATIONS_ENABLED = True
 DB_DEFAULT_CALORIE_OVERRIDE = False
 DB_DEFAULT_ONBOARDING_COMPLETE = False
 DB_DEFAULT_WEEKLY_SUMMARY_ENABLED = True
+
+
+# =============================================================================
+# PET SYSTEM (TAMAGOTCHI)
+# =============================================================================
+
+class PetMood(str, Enum):
+    """Pet mood states based on daily calorie goal percentage."""
+    STARVING = "starving"    # 0% - nothing logged
+    HUNGRY = "hungry"        # 1-49% - under half
+    HAPPY = "happy"          # 50-99% - good progress
+    ECSTATIC = "ecstatic"    # 100-120% - hit target
+    STUFFED = "stuffed"      # 121%+ - overeaten
+
+
+class PetLevel(str, Enum):
+    """Pet evolution levels based on total meals logged."""
+    EGG = "egg"          # 0-1 meals
+    BABY = "baby"        # 2-50 meals
+    TEEN = "teen"        # 51-150 meals
+    ADULT = "adult"      # 151-500 meals
+    ELDER = "elder"      # 501+ meals
+
+
+# Thresholds for pet levels (total meals required)
+PET_LEVEL_THRESHOLDS = {
+    PetLevel.EGG: 0,
+    PetLevel.BABY: 2,
+    PetLevel.TEEN: 51,
+    PetLevel.ADULT: 151,
+    PetLevel.ELDER: 501,
+}
+
+# Thresholds for mood (percentage of daily calorie goal)
+PET_MOOD_STUFFED_MIN = 121   # 121%+ = stuffed (overeaten)
+PET_MOOD_ECSTATIC_MIN = 100  # 100-120% = ecstatic (hit target)
+PET_MOOD_HAPPY_MIN = 50      # 50-99% = happy (good progress)
+PET_MOOD_HUNGRY_MIN = 1      # 1-49% = hungry (under half)
+# 0% = starving (nothing logged)
+
+# Default pet name
+DEFAULT_PET_NAME = "Nibbles"
+
+
+# =============================================================================
+# ACHIEVEMENTS
+# =============================================================================
+
+# Achievement definitions: id -> (name, description, emoji)
+ACHIEVEMENTS = {
+    # Milestone achievements
+    "first_bite": ("First Bite", "Log your first meal", "🍽️"),
+    "getting_started": ("Getting Started", "Log 10 meals", "🌱"),
+    "century_club": ("Century Club", "Log 100 meals", "💯"),
+    "dedicated": ("Dedicated", "Log 500 meals", "🏅"),
+
+    # Streak achievements
+    "week_warrior": ("Week Warrior", "7-day logging streak", "🔥"),
+    "fortnight_fighter": ("Fortnight Fighter", "14-day logging streak", "⚡"),
+    "month_master": ("Month Master", "30-day logging streak", "👑"),
+
+    # Evolution achievements
+    "hatched": ("Hatched!", "Your pet evolved from Egg to Baby", "🐣"),
+    "growing_up": ("Growing Up", "Your pet evolved to Teen", "🌟"),
+    "all_grown": ("All Grown Up", "Your pet evolved to Adult", "💪"),
+    "wise_one": ("The Wise One", "Your pet evolved to Elder", "🧙"),
+}

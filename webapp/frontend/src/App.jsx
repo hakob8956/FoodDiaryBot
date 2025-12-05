@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react'
 import api from './api/client'
 import Navigation from './components/Navigation'
 import Dashboard from './components/Dashboard'
+import Pet from './components/Pet'
 import Calendar from './components/Calendar'
 import Charts from './components/Charts'
 import DaySummary from './components/DaySummary'
@@ -94,6 +95,7 @@ function App() {
 
       <main className="main">
         {activeTab === 'dashboard' && <Dashboard key={dashboardKey} />}
+        {activeTab === 'pet' && <Pet />}
         {activeTab === 'calendar' && (
           <Calendar
             key={calendarKey}

@@ -10,7 +10,7 @@ from fastapi.staticfiles import StaticFiles
 from config import settings
 from database.migrations import run_migrations
 
-from .routes import calendar, charts, summary, auth, dashboard, profile
+from .routes import calendar, charts, summary, auth, dashboard, profile, pet
 
 logger = logging.getLogger(__name__)
 
@@ -49,6 +49,7 @@ app.include_router(profile.router, prefix="/api", tags=["profile"])
 app.include_router(calendar.router, prefix="/api", tags=["calendar"])
 app.include_router(charts.router, prefix="/api", tags=["charts"])
 app.include_router(summary.router, prefix="/api", tags=["summary"])
+app.include_router(pet.router, prefix="/api", tags=["pet"])
 
 
 @app.get("/api/health")

@@ -249,6 +249,38 @@ class FoodLogRepository:
 
         return food_names
 
+    async def set_daily_calories(self, telegram_id: int, target_calories: int) -> None:
+        """
+        Set today's calories to a specific value (admin testing only).
+
+        Deletes today's logs and creates a single test entry with the target calories.
+        """
+        today = date.today().isoformat()
+
+        # Delete today's logs
+        await db.execute(
+            """
+            DELETE FROM food_logs
+            WHERE telegram_id = ?
+            AND date(logged_at) = date(?)
+            """,
+            (telegram_id, today)
+        )
+
+        # Create a test entry with the target calories
+        if target_calories > 0:
+            await db.execute(
+                """
+                INSERT INTO food_logs (
+                    telegram_id, input_type, raw_input, analysis_json,
+                    total_calories, total_protein, total_carbs, total_fat,
+                    confidence_score
+                )
+                VALUES (?, 'text', '[Admin Test]', '{"items":[]}', ?, 0, 0, 0, 1.0)
+                """,
+                (telegram_id, target_calories)
+            )
+
 
 # Singleton instance
 food_log_repo = FoodLogRepository()

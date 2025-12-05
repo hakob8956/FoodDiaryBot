@@ -1,0 +1,217 @@
+.pet-container {
+  padding: 1rem;
+}
+
+.pet-container.loading,
+.pet-container.error {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 200px;
+}
+
+/* Pet Display */
+.pet-display {
+  text-align: center;
+  padding: 1.5rem;
+  background: var(--bg-secondary, #1a1a2e);
+  border-radius: 16px;
+  margin-bottom: 1rem;
+}
+
+/* Pet Image */
+.pet-image {
+  margin-bottom: 1rem;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 120px;
+}
+
+.pet-image img {
+  max-width: 150px;
+  max-height: 150px;
+  width: auto;
+  height: auto;
+  object-fit: contain;
+  image-rendering: pixelated; /* For pixel art style */
+}
+
+.pet-ascii-fallback {
+  font-family: monospace;
+  font-size: 1.2rem;
+  line-height: 1.2;
+  margin: 0;
+  color: var(--text-primary, #fff);
+}
+
+.pet-name-row h2 {
+  margin: 0.5rem 0;
+  font-size: 1.5rem;
+  cursor: pointer;
+}
+
+.pet-name-row .edit-hint {
+  font-size: 0.7rem;
+  color: var(--text-secondary, #888);
+  font-weight: normal;
+}
+
+.rename-form {
+  display: flex;
+  gap: 0.5rem;
+  justify-content: center;
+  align-items: center;
+}
+
+.rename-form input {
+  padding: 0.5rem;
+  border-radius: 8px;
+  border: 1px solid var(--border-color, #333);
+  background: var(--bg-primary, #0f0f1a);
+  color: var(--text-primary, #fff);
+  font-size: 1rem;
+  width: 120px;
+}
+
+.rename-form button {
+  padding: 0.5rem 1rem;
+  border-radius: 8px;
+  border: none;
+  background: var(--accent-color, #4a90d9);
+  color: white;
+  cursor: pointer;
+  font-size: 0.9rem;
+}
+
+.rename-form button:last-child {
+  background: var(--bg-tertiary, #2a2a3e);
+}
+
+.pet-status {
+  display: flex;
+  justify-content: center;
+  gap: 1.5rem;
+  font-size: 0.95rem;
+  color: var(--text-secondary, #aaa);
+}
+
+.pet-status .mood {
+  font-weight: 500;
+}
+
+/* Stats */
+.pet-stats {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 0.5rem;
+  margin-bottom: 1rem;
+}
+
+.pet-stats .stat {
+  background: var(--bg-secondary, #1a1a2e);
+  border-radius: 12px;
+  padding: 1rem 0.5rem;
+  text-align: center;
+}
+
+.pet-stats .stat-value {
+  display: block;
+  font-size: 1.5rem;
+  font-weight: bold;
+  color: var(--text-primary, #fff);
+}
+
+.pet-stats .stat-label {
+  font-size: 0.75rem;
+  color: var(--text-secondary, #888);
+}
+
+/* Achievements */
+.achievements-section {
+  background: var(--bg-secondary, #1a1a2e);
+  border-radius: 16px;
+  padding: 1rem;
+}
+
+.achievements-section h3 {
+  margin: 0 0 1rem 0;
+  font-size: 1rem;
+  color: var(--text-primary, #fff);
+}
+
+.achievements-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 0.5rem;
+}
+
+.achievement {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.75rem;
+  background: var(--bg-tertiary, #252538);
+  border-radius: 10px;
+  transition: opacity 0.2s;
+}
+
+.achievement.locked {
+  opacity: 0.5;
+}
+
+.achievement.unlocked {
+  opacity: 1;
+}
+
+.achievement-emoji {
+  font-size: 1.25rem;
+}
+
+.achievement-name {
+  font-size: 0.8rem;
+  color: var(--text-primary, #fff);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* Calorie Progress Bar */
+.calorie-progress {
+  margin-top: 1rem;
+  padding-top: 1rem;
+  border-top: 1px solid var(--border-color, #333);
+}
+
+.progress-header {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 0.5rem;
+  font-size: 0.85rem;
+  color: var(--text-secondary, #aaa);
+}
+
+.progress-header .overeating {
+  color: #ff6b6b;
+  font-weight: 500;
+}
+
+.progress-bar {
+  width: 100%;
+  height: 12px;
+  background: var(--bg-tertiary, #252538);
+  border-radius: 6px;
+  overflow: hidden;
+}
+
+.progress-fill {
+  height: 100%;
+  background: linear-gradient(90deg, #4ade80, #22c55e);
+  border-radius: 6px;
+  transition: width 0.3s ease;
+}
+
+.progress-fill.overeating {
+  background: linear-gradient(90deg, #fbbf24, #f97316, #ef4444);
+}
