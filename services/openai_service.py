@@ -75,7 +75,8 @@ class OpenAIService:
     @retry(
         stop=stop_after_attempt(3),
         wait=wait_exponential(multiplier=1, min=2, max=10),
-        retry=retry_if_exception_type((openai.RateLimitError, openai.APITimeoutError))
+        retry=retry_if_exception_type(
+            (openai.RateLimitError, openai.APITimeoutError))
     )
     async def analyze_food(
         self,
@@ -163,6 +164,7 @@ Tone:
 - like a pet begging its owner gently
 - slightly funny but still warm and motivating
 - message should feel personal based on the foods they actually logged
+- message should be very short and simple enought not overwhelm the user and not poetic
 
 Rules:
 - Use only the foods that appear in the last 7 days
